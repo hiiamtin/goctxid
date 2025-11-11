@@ -78,11 +78,13 @@ correlationID := goctxid_fibernative.MustFromLocals(c)
 **Use Case:** Fiber-native approach for maximum performance
 
 **Performance Benefits:**
+
 - 17% faster with existing IDs
 - 1 fewer allocation per request
 - ~50 bytes less memory per request
 
 **API:**
+
 - `FromLocals(c *fiber.Ctx) (string, bool)` - Get ID from Locals
 - `MustFromLocals(c *fiber.Ctx) string` - Get ID or empty string
 - `LocalsKey = "goctxid"` - The key used in c.Locals()

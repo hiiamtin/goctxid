@@ -134,6 +134,7 @@ curl http://localhost:3000/user/123
 ```
 
 **Performance Benefits:**
+
 - 17% faster with existing IDs
 - 1 fewer allocation per request
 - ~50 bytes less memory per request
