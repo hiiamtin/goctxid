@@ -1,0 +1,18 @@
+goctxid/
+├── goctxid.go              # Core package - context operations
+├── goctxid_test.go         # Core package tests (100% coverage)
+├── fiber.go                # Fiber framework adapter
+├── fiber_test.go           # Fiber middleware tests
+├── go.mod                  # Go module definition
+├── go.sum                  # Dependency checksums
+├── README.md               # Main documentation
+├── BENCHMARKS.md           # Performance benchmarks and analysis
+└── examples/               # Usage examples
+    ├── README.md           # Examples documentation
+    ├── basic/              # Basic usage example
+    │   └── main.go
+    ├── custom-generator/   # Custom ID generator examples
+    │   └── main.go
+    └── logging/            # Logging integration example
+        └── main.go
+
