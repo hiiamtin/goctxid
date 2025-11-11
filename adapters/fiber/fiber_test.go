@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -405,5 +406,115 @@ func BenchmarkMiddlewareWithContextAccess(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		resp, _ := app.Test(req)
 		resp.Body.Close()
+	}
+}
+
+// TestGoroutineSafety tests that context-based approach is safer for goroutines
+// Context is immutable and can be safely passed to goroutines
+func TestGoroutineSafety(t *testing.T) {
+	app := fiber.New()
+	app.Use(New())
+
+	var wg sync.WaitGroup
+	capturedIDs := make([]string, 0)
+	var mu sync.Mutex
+
+	// ✅ Context-based approach is safer for goroutines
+	app.Get("/safe", func(c *fiber.Ctx) error {
+		// Get the context - it's immutable and safe to pass to goroutines
+		ctx := c.UserContext()
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			// Small delay to ensure handler completes first
+			time.Sleep(10 * time.Millisecond)
+
+			// Access correlation ID from context - this is safe
+			id := goctxid.MustFromContext(ctx)
+
+			mu.Lock()
+			capturedIDs = append(capturedIDs, id)
+			mu.Unlock()
+		}()
+
+		return c.SendString("OK")
+	})
+
+	// Make request
+	req := httptest.NewRequest("GET", "/safe", nil)
+	req.Header.Set(goctxid.DefaultHeaderKey, "test-id-789")
+
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("Request failed: %v", err)
+	}
+	resp.Body.Close()
+
+	// Wait for goroutine to complete
+	wg.Wait()
+
+	// Verify the goroutine captured the correct ID
+	if len(capturedIDs) != 1 {
+		t.Fatalf("Expected 1 captured ID, got %d", len(capturedIDs))
+	}
+
+	if capturedIDs[0] != "test-id-789" {
+		t.Errorf("Expected captured ID to be 'test-id-789', got '%s'", capturedIDs[0])
+	}
+}
+
+// TestMultipleGoroutines tests that context can be safely shared across multiple goroutines
+func TestMultipleGoroutines(t *testing.T) {
+	app := fiber.New()
+	app.Use(New())
+
+	const numGoroutines = 10
+	var wg sync.WaitGroup
+	capturedIDs := make([]string, 0, numGoroutines)
+	var mu sync.Mutex
+
+	app.Get("/multi", func(c *fiber.Ctx) error {
+		ctx := c.UserContext()
+
+		// Spawn multiple goroutines
+		for i := 0; i < numGoroutines; i++ {
+			wg.Add(1)
+			go func(index int) {
+				defer wg.Done()
+				time.Sleep(time.Duration(index) * time.Millisecond)
+
+				// All goroutines should get the same ID
+				id := goctxid.MustFromContext(ctx)
+
+				mu.Lock()
+				capturedIDs = append(capturedIDs, id)
+				mu.Unlock()
+			}(i)
+		}
+
+		return c.SendString("OK")
+	})
+
+	req := httptest.NewRequest("GET", "/multi", nil)
+	req.Header.Set(goctxid.DefaultHeaderKey, "multi-test-id")
+
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("Request failed: %v", err)
+	}
+	resp.Body.Close()
+
+	wg.Wait()
+
+	// Verify all goroutines captured the same ID
+	if len(capturedIDs) != numGoroutines {
+		t.Fatalf("Expected %d captured IDs, got %d", numGoroutines, len(capturedIDs))
+	}
+
+	for i, id := range capturedIDs {
+		if id != "multi-test-id" {
+			t.Errorf("Goroutine %d: expected 'multi-test-id', got '%s'", i, id)
+		}
 	}
 }

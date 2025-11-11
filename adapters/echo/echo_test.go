@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/hiiamtin/goctxid"
@@ -394,5 +395,107 @@ func BenchmarkMiddlewareWithContextAccess(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		rec := httptest.NewRecorder()
 		e.ServeHTTP(rec, req)
+	}
+}
+
+// TestGoroutineSafety tests that context-based approach is safe for goroutines
+func TestGoroutineSafety(t *testing.T) {
+	e := echo.New()
+	e.Use(New())
+
+	var wg sync.WaitGroup
+	capturedIDs := make([]string, 0)
+	var mu sync.Mutex
+
+	e.GET("/safe", func(c echo.Context) error {
+		// Get the context - it's immutable and safe to pass to goroutines
+		ctx := c.Request().Context()
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			// Small delay to ensure handler completes first
+			time.Sleep(10 * time.Millisecond)
+
+			// Access correlation ID from context - this is safe
+			id := goctxid.MustFromContext(ctx)
+
+			mu.Lock()
+			capturedIDs = append(capturedIDs, id)
+			mu.Unlock()
+		}()
+
+		return c.String(http.StatusOK, "OK")
+	})
+
+	// Make request
+	req := httptest.NewRequest("GET", "/safe", nil)
+	req.Header.Set(goctxid.DefaultHeaderKey, "echo-test-id")
+	rec := httptest.NewRecorder()
+
+	e.ServeHTTP(rec, req)
+
+	// Wait for goroutine to complete
+	wg.Wait()
+
+	// Verify the goroutine captured the correct ID
+	if len(capturedIDs) != 1 {
+		t.Fatalf("Expected 1 captured ID, got %d", len(capturedIDs))
+	}
+
+	if capturedIDs[0] != "echo-test-id" {
+		t.Errorf("Expected captured ID to be 'echo-test-id', got '%s'", capturedIDs[0])
+	}
+}
+
+// TestMultipleGoroutines tests that context can be safely shared across multiple goroutines
+func TestMultipleGoroutines(t *testing.T) {
+	e := echo.New()
+	e.Use(New())
+
+	const numGoroutines = 10
+	var wg sync.WaitGroup
+	capturedIDs := make([]string, 0, numGoroutines)
+	var mu sync.Mutex
+
+	e.GET("/multi", func(c echo.Context) error {
+		ctx := c.Request().Context()
+
+		// Spawn multiple goroutines
+		for i := 0; i < numGoroutines; i++ {
+			wg.Add(1)
+			go func(index int) {
+				defer wg.Done()
+				time.Sleep(time.Duration(index) * time.Millisecond)
+
+				// All goroutines should get the same ID
+				id := goctxid.MustFromContext(ctx)
+
+				mu.Lock()
+				capturedIDs = append(capturedIDs, id)
+				mu.Unlock()
+			}(i)
+		}
+
+		return c.String(http.StatusOK, "OK")
+	})
+
+	req := httptest.NewRequest("GET", "/multi", nil)
+	req.Header.Set(goctxid.DefaultHeaderKey, "echo-multi-id")
+	rec := httptest.NewRecorder()
+
+	e.ServeHTTP(rec, req)
+
+	wg.Wait()
+
+	// Verify all goroutines captured the same ID
+	if len(capturedIDs) != numGoroutines {
+		t.Fatalf("Expected %d captured IDs, got %d", numGoroutines, len(capturedIDs))
+	}
+
+	for i, id := range capturedIDs {
+		if id != "echo-multi-id" {
+			t.Errorf("Goroutine %d: expected 'echo-multi-id', got '%s'", i, id)
+		}
 	}
 }

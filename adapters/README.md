@@ -89,6 +89,38 @@ correlationID := goctxid_fibernative.MustFromLocals(c)
 - `MustFromLocals(c *fiber.Ctx) string` - Get ID or empty string
 - `LocalsKey = "goctxid"` - The key used in c.Locals()
 
+**⚠️ Goroutine Safety Warning:**
+
+The `fibernative` adapter uses `c.Locals()` which is **NOT safe** to use directly in goroutines because Fiber recycles the context after the handler completes.
+
+```go
+// ❌ WRONG - Don't do this:
+app.Get("/", func(c *fiber.Ctx) error {
+    go func() {
+        // ⚠️ DANGER: c may be recycled!
+        id := goctxid_fibernative.MustFromLocals(c)
+        log.Println(id)
+    }()
+    return c.SendString("OK")
+})
+
+// ✅ CORRECT - Copy the value first:
+app.Get("/", func(c *fiber.Ctx) error {
+    correlationID := goctxid_fibernative.MustFromLocals(c)
+
+    go func() {
+        // Safe to use the copied value
+        log.Println(correlationID)
+    }()
+    return c.SendString("OK")
+})
+```
+
+**When to use:**
+
+- ✅ Use `fibernative` when you need maximum performance and don't use goroutines
+- ✅ Use `fiber` (context-based) when you need to pass IDs to goroutines frequently
+
 ---
 
 ### 3. Standard net/http

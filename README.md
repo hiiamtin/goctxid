@@ -132,12 +132,41 @@ func main() {
 
 **Which Fiber adapter should I use?**
 
-| Adapter | Storage | Use Case | Performance |
-|---------|---------|----------|-------------|
-| `adapters/fiber` | `context.Context` | Standard patterns, compatibility with other middleware | Good |
-| `adapters/fibernative` | `c.Locals()` | Fiber-native, maximum performance | Better (17% faster) |
+| Adapter | Storage | Use Case | Performance | Goroutine Safety |
+|---------|---------|----------|-------------|------------------|
+| `adapters/fiber` | `context.Context` | Standard patterns, compatibility with other middleware | Good | ✅ Safe (context is immutable) |
+| `adapters/fibernative` | `c.Locals()` | Fiber-native, maximum performance | Better (17% faster) | ⚠️ **Must copy values before goroutines** |
 
 See complete example: [examples/fiber-native](./examples/fiber-native)
+
+**⚠️ Important: Goroutine Safety with `fibernative`**
+
+The `fibernative` adapter uses `c.Locals()` which is **NOT safe** to use directly in goroutines because Fiber recycles the context after the handler completes.
+
+```go
+// ❌ WRONG - Don't do this:
+app.Get("/", func(c *fiber.Ctx) error {
+    go func() {
+        // ⚠️ DANGER: c may be recycled!
+        id := goctxid_fibernative.MustFromLocals(c)
+        log.Println(id)
+    }()
+    return c.SendString("OK")
+})
+
+// ✅ CORRECT - Copy the value first:
+app.Get("/", func(c *fiber.Ctx) error {
+    correlationID := goctxid_fibernative.MustFromLocals(c)
+
+    go func() {
+        // Safe to use the copied value
+        log.Println(correlationID)
+    }()
+    return c.SendString("OK")
+})
+```
+
+If you need to use correlation IDs in goroutines frequently, consider using the context-based adapter (`adapters/fiber`) instead.
 
 #### Standard net/http
 

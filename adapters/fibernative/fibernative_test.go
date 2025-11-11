@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -510,4 +511,104 @@ func BenchmarkMiddlewareWithLocalsAccess(b *testing.B) {
 		resp, _ := app.Test(req)
 		resp.Body.Close()
 	}
+}
+
+// TestGoroutineSafety tests that correlation ID must be copied before using in goroutines
+// This test demonstrates the CORRECT way to use fibernative with goroutines
+func TestGoroutineSafety(t *testing.T) {
+	app := fiber.New()
+	app.Use(New())
+
+	var wg sync.WaitGroup
+	capturedIDs := make([]string, 0)
+	var mu sync.Mutex
+
+	// ✅ CORRECT: Copy the value before using in goroutine
+	app.Get("/correct", func(c *fiber.Ctx) error {
+		// Copy the correlation ID before spawning goroutine
+		correlationID := MustFromLocals(c)
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			// Small delay to ensure handler completes first
+			time.Sleep(10 * time.Millisecond)
+
+			// Use the copied value - this is safe
+			mu.Lock()
+			capturedIDs = append(capturedIDs, correlationID)
+			mu.Unlock()
+		}()
+
+		return c.SendString("OK")
+	})
+
+	// Make request
+	req := httptest.NewRequest("GET", "/correct", nil)
+	req.Header.Set(goctxid.DefaultHeaderKey, "test-id-123")
+
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("Request failed: %v", err)
+	}
+	resp.Body.Close()
+
+	// Wait for goroutine to complete
+	wg.Wait()
+
+	// Verify the goroutine captured the correct ID
+	if len(capturedIDs) != 1 {
+		t.Fatalf("Expected 1 captured ID, got %d", len(capturedIDs))
+	}
+
+	if capturedIDs[0] != "test-id-123" {
+		t.Errorf("Expected captured ID to be 'test-id-123', got '%s'", capturedIDs[0])
+	}
+}
+
+// TestGoroutineUnsafe demonstrates the WRONG way (for documentation purposes)
+// This test shows what happens when you try to access c.Locals() after handler completes
+func TestGoroutineUnsafe(t *testing.T) {
+	t.Skip("This test demonstrates unsafe behavior - skipped by default")
+
+	app := fiber.New()
+	app.Use(New())
+
+	var wg sync.WaitGroup
+	var capturedID string
+	var mu sync.Mutex
+
+	// ❌ WRONG: Don't access c.Locals() in goroutine
+	app.Get("/unsafe", func(c *fiber.Ctx) error {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			// Wait to ensure handler completes and context is recycled
+			time.Sleep(50 * time.Millisecond)
+
+			// ⚠️ DANGER: Accessing c after handler completes
+			// This may panic, return wrong value, or cause race conditions
+			id := MustFromLocals(c)
+
+			mu.Lock()
+			capturedID = id
+			mu.Unlock()
+		}()
+
+		return c.SendString("OK")
+	})
+
+	req := httptest.NewRequest("GET", "/unsafe", nil)
+	req.Header.Set(goctxid.DefaultHeaderKey, "test-id-456")
+
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("Request failed: %v", err)
+	}
+	resp.Body.Close()
+
+	wg.Wait()
+
+	// The captured ID may be empty, wrong, or cause a panic
+	t.Logf("Captured ID (may be wrong): %s", capturedID)
 }

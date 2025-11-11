@@ -139,6 +139,31 @@ curl http://localhost:3000/user/123
 - 1 fewer allocation per request
 - ~50 bytes less memory per request
 
+**⚠️ Important: Goroutine Safety**
+The `fibernative` adapter uses `c.Locals()` which is **NOT safe** to use directly in goroutines:
+
+```go
+// ❌ WRONG - Don't do this:
+app.Get("/", func(c *fiber.Ctx) error {
+    go func() {
+        // ⚠️ DANGER: c may be recycled!
+        id := goctxid_fibernative.MustFromLocals(c)
+        log.Println(id)
+    }()
+    return c.SendString("OK")
+})
+
+// ✅ CORRECT - Copy the value first:
+app.Get("/", func(c *fiber.Ctx) error {
+    correlationID := goctxid_fibernative.MustFromLocals(c)
+
+    go func() {
+        log.Println(correlationID) // Safe!
+    }()
+    return c.SendString("OK")
+})
+```
+
 ---
 
 ### 4. Echo Basic Usage
