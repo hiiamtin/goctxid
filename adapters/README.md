@@ -31,7 +31,7 @@ The `goctxid` library is **framework-agnostic** at its core. The core package (`
 
 ## Available Adapters
 
-### 1. Fiber
+### 1. Fiber (Context-Based)
 
 **Import:**
 
@@ -44,13 +44,52 @@ import goctxid_fiber "github.com/hiiamtin/goctxid/adapters/fiber"
 ```go
 app := fiber.New()
 app.Use(goctxid_fiber.New())
+
+// Access ID from context
+correlationID := goctxid.MustFromContext(c.UserContext())
 ```
 
 **Location:** `adapters/fiber/`
 
+**Use Case:** Standard approach, compatible with other middleware that uses context
+
 ---
 
-### 2. Standard net/http
+### 2. Fiber Native (c.Locals() - Better Performance)
+
+**Import:**
+
+```go
+import goctxid_fibernative "github.com/hiiamtin/goctxid/adapters/fibernative"
+```
+
+**Usage:**
+
+```go
+app := fiber.New()
+app.Use(goctxid_fibernative.New())
+
+// Access ID from Locals (Fiber-native way)
+correlationID := goctxid_fibernative.MustFromLocals(c)
+```
+
+**Location:** `adapters/fibernative/`
+
+**Use Case:** Fiber-native approach for maximum performance
+
+**Performance Benefits:**
+- 17% faster with existing IDs
+- 1 fewer allocation per request
+- ~50 bytes less memory per request
+
+**API:**
+- `FromLocals(c *fiber.Ctx) (string, bool)` - Get ID from Locals
+- `MustFromLocals(c *fiber.Ctx) string` - Get ID or empty string
+- `LocalsKey = "goctxid"` - The key used in c.Locals()
+
+---
+
+### 3. Standard net/http
 
 **No adapter needed!** Use the middleware pattern directly.
 
@@ -84,7 +123,7 @@ http.ListenAndServe(":3000", handler)
 
 ---
 
-### 3. Echo
+### 4. Echo
 
 **Import:**
 
@@ -103,7 +142,7 @@ e.Use(goctxid_echo.New())
 
 ---
 
-### 4. Gin
+### 5. Gin
 
 **Import:**
 
@@ -220,7 +259,8 @@ func New(config ...goctxid.Config) func(http.Handler) http.Handler {
 
 | Framework | Adapter Location | Import Path | Middleware Type |
 |-----------|-----------------|-------------|-----------------|
-| **Fiber** | Root package | `github.com/hiiamtin/goctxid` | `fiber.Handler` |
+| **Fiber (Context)** | `adapters/fiber/` | `github.com/hiiamtin/goctxid/adapters/fiber` | `fiber.Handler` |
+| **Fiber (Native)** | `adapters/fibernative/` | `github.com/hiiamtin/goctxid/adapters/fibernative` | `fiber.Handler` |
 | **net/http** | No adapter needed | `github.com/hiiamtin/goctxid` | `func(http.Handler) http.Handler` |
 | **Echo** | `adapters/echo/` | `github.com/hiiamtin/goctxid/adapters/echo` | `echo.MiddlewareFunc` |
 | **Gin** | `adapters/gin/` | `github.com/hiiamtin/goctxid/adapters/gin` | `gin.HandlerFunc` |

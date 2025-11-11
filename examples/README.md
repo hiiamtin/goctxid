@@ -6,7 +6,8 @@ This directory contains practical examples demonstrating how to use the goctxid 
 
 | Example | Framework | Description | Key Features |
 |---------|-----------|-------------|--------------|
-| [basic](./basic) | Fiber | Simple usage with default configuration | Default middleware setup, accessing correlation IDs |
+| [basic](./basic) | Fiber | Simple usage with default configuration (context-based) | Default middleware setup, accessing correlation IDs |
+| [fiber-native](./fiber-native) | Fiber | Fiber-native approach using c.Locals() | Better performance, Fiber-native storage, FromLocals() API |
 | [echo-basic](./echo-basic) | Echo | Simple usage with Echo framework | Echo middleware, context operations |
 | [gin-basic](./gin-basic) | Gin | Simple usage with Gin framework | Gin middleware, context operations |
 | [standard-http](./standard-http) | net/http | Using with standard library | Framework-agnostic usage, custom middleware |
@@ -28,8 +29,12 @@ go mod download
 ### Run an Example
 
 ```bash
-# Fiber basic example
+# Fiber basic example (context-based)
 cd examples/basic
+go run main.go
+
+# Fiber native example (c.Locals() - better performance)
+cd examples/fiber-native
 go run main.go
 
 # Echo basic example
@@ -57,14 +62,14 @@ All examples start a server on `http://localhost:3000`. Each example includes cu
 
 ## Example Details
 
-### 1. Basic Usage (Fiber)
+### 1. Basic Usage (Fiber - Context-Based)
 
 **Location:** `examples/basic/`
 
-Demonstrates the simplest way to use goctxid with Fiber:
+Demonstrates the simplest way to use goctxid with Fiber using context-based storage:
 
 - Adding middleware with default configuration
-- Accessing correlation IDs in handlers
+- Accessing correlation IDs in handlers via context
 - Automatic ID generation
 - Using existing IDs from request headers
 
@@ -85,7 +90,57 @@ curl http://localhost:3000/
 curl -H "X-Correlation-ID: my-custom-id" http://localhost:3000/
 ```
 
-### 2. Echo Basic Usage
+---
+
+### 2. Fiber Native (c.Locals() - Better Performance)
+
+**Location:** `examples/fiber-native/`
+
+Demonstrates the Fiber-native approach using `c.Locals()` for better performance:
+
+- Uses `c.Locals()` instead of context (Fiber-native way)
+- Better performance - no context allocation overhead
+- Simpler API with `FromLocals()` and `MustFromLocals()`
+- Same features as context-based adapter
+
+**Import:**
+
+```go
+import goctxid_fibernative "github.com/hiiamtin/goctxid/adapters/fibernative"
+```
+
+**Key Differences:**
+
+```go
+// Context-based (adapters/fiber)
+app.Use(goctxid_fiber.New())
+correlationID := goctxid.MustFromContext(c.UserContext())
+
+// Fiber-native (adapters/fibernative) - More performant!
+app.Use(goctxid_fibernative.New())
+correlationID := goctxid_fibernative.MustFromLocals(c)
+```
+
+**Try it:**
+
+```bash
+cd examples/fiber-native
+go run main.go
+
+# In another terminal:
+curl http://localhost:3000/
+curl -H "X-Correlation-ID: my-custom-id" http://localhost:3000/
+curl http://localhost:3000/user/123
+```
+
+**Performance Benefits:**
+- 17% faster with existing IDs
+- 1 fewer allocation per request
+- ~50 bytes less memory per request
+
+---
+
+### 4. Echo Basic Usage
 
 **Location:** `examples/echo-basic/`
 
@@ -116,7 +171,7 @@ curl http://localhost:3000/user/123
 
 ---
 
-### 3. Gin Basic Usage
+### 5. Gin Basic Usage
 
 **Location:** `examples/gin-basic/`
 
@@ -147,7 +202,7 @@ curl http://localhost:3000/user/123
 
 ---
 
-### 4. Standard net/http
+### 6. Standard net/http
 
 **Location:** `examples/standard-http/`
 
@@ -171,7 +226,7 @@ curl -H "X-Correlation-ID: my-custom-id" http://localhost:3000/
 
 ---
 
-### 5. Custom Generator
+### 7. Custom Generator
 
 **Location:** `examples/custom-generator/`
 
@@ -198,7 +253,7 @@ curl http://localhost:3000/api/v3/test  # Custom header
 
 ---
 
-### 6. Logging Integration
+### 8. Logging Integration
 
 **Location:** `examples/logging/`
 

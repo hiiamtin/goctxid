@@ -8,7 +8,9 @@
 
 * **Framework Agnostic:** Core logic is built on standard `context.Context`.
 * **Multiple Framework Support:**
-  * ✅ [Fiber](https://gofiber.io/) (adapter in `adapters/fiber`)
+  * ✅ [Fiber](https://gofiber.io/) - Two adapters available:
+    * `adapters/fiber` - Context-based (standard approach)
+    * `adapters/fibernative` - Fiber-native using c.Locals() (better performance)
   * ✅ Standard `net/http` (no adapter needed - use core package directly)
   * ✅ [Echo](https://echo.labstack.com/) (adapter in `adapters/echo`)
   * ✅ [Gin](https://gin-gonic.com/) (adapter in `adapters/gin`)
@@ -76,7 +78,7 @@ app.Use(goctxid_fiber.New(goctxid.Config{
 
 ### Using with Different Frameworks
 
-#### Fiber
+#### Fiber (Context-Based)
 
 ```go
 package main
@@ -90,7 +92,7 @@ import (
 func main() {
     app := fiber.New()
 
-    // Add middleware
+    // Add middleware (context-based)
     app.Use(goctxid_fiber.New())
 
     app.Get("/", func(c *fiber.Ctx) error {
@@ -101,6 +103,41 @@ func main() {
     app.Listen(":3000")
 }
 ```
+
+#### Fiber Native (c.Locals() - Better Performance)
+
+```go
+package main
+
+import (
+    "github.com/gofiber/fiber/v2"
+    goctxid_fibernative "github.com/hiiamtin/goctxid/adapters/fibernative"
+)
+
+func main() {
+    app := fiber.New()
+
+    // Add middleware (Fiber-native using c.Locals())
+    app.Use(goctxid_fibernative.New())
+
+    app.Get("/", func(c *fiber.Ctx) error {
+        // Access ID directly from Locals (more performant!)
+        correlationID := goctxid_fibernative.MustFromLocals(c)
+        return c.SendString("Correlation ID: " + correlationID)
+    })
+
+    app.Listen(":3000")
+}
+```
+
+**Which Fiber adapter should I use?**
+
+| Adapter | Storage | Use Case | Performance |
+|---------|---------|----------|-------------|
+| `adapters/fiber` | `context.Context` | Standard patterns, compatibility with other middleware | Good |
+| `adapters/fibernative` | `c.Locals()` | Fiber-native, maximum performance | Better (17% faster) |
+
+See complete example: [examples/fiber-native](./examples/fiber-native)
 
 #### Standard net/http
 
@@ -168,7 +205,8 @@ Check out the [examples/](./examples) directory for complete, runnable examples:
 
 | Example | Framework | Description |
 |---------|-----------|-------------|
-| **[basic](./examples/basic)** | Fiber | Simple usage with default configuration |
+| **[basic](./examples/basic)** | Fiber | Simple usage with default configuration (context-based) |
+| **[fiber-native](./examples/fiber-native)** | Fiber | Fiber-native approach using c.Locals() (better performance) |
 | **[standard-http](./examples/standard-http)** | net/http | Framework-agnostic usage with standard library |
 | **[custom-generator](./examples/custom-generator)** | Fiber | Custom ID generation strategies (sequential, prefixed) |
 | **[logging](./examples/logging)** | Fiber | Integration with logging systems and service layers |
@@ -191,13 +229,25 @@ curl -H "X-Correlation-ID: my-custom-id" http://localhost:3000/
 
 Each framework adapter provides a `New()` function that creates middleware for that framework:
 
-#### Fiber: `goctxid_fiber.New(config ...goctxid.Config)`
+#### Fiber (Context-Based): `goctxid_fiber.New(config ...goctxid.Config)`
 
 ```go
 import goctxid_fiber "github.com/hiiamtin/goctxid/adapters/fiber"
 
 app.Use(goctxid_fiber.New())
 app.Use(goctxid_fiber.New(goctxid.Config{...}))
+```
+
+#### Fiber Native (c.Locals()): `goctxid_fibernative.New(config ...goctxid.Config)`
+
+```go
+import goctxid_fibernative "github.com/hiiamtin/goctxid/adapters/fibernative"
+
+app.Use(goctxid_fibernative.New())
+app.Use(goctxid_fibernative.New(goctxid.Config{...}))
+
+// Access ID from Locals
+correlationID := goctxid_fibernative.MustFromLocals(c)
 ```
 
 #### Echo: `goctxid_echo.New(config ...goctxid.Config)`
