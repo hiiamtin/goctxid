@@ -1,6 +1,7 @@
 package echo
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -522,22 +523,21 @@ func TestConcurrentRequestsWithGoroutines(t *testing.T) {
 		requestID := goctxid.MustFromContext(ctx)
 
 		wg.Add(1)
-		go func() {
+		go func(capturedCtx context.Context, expectedID string) {
 			defer wg.Done()
-			// Delay to ensure handler completes and other requests come in
-			// This simulates real-world async processing
+			// Delay to simulate async processing and ensure handler completes first
 			time.Sleep(50 * time.Millisecond)
 
 			// Access ID from goroutine - should still be the correct ID
-			capturedID := goctxid.MustFromContext(ctx)
+			capturedID := goctxid.MustFromContext(capturedCtx)
 
 			mu.Lock()
 			results = append(results, result{
-				requestID:  requestID,
+				requestID:  expectedID,
 				capturedID: capturedID,
 			})
 			mu.Unlock()
-		}()
+		}(ctx, requestID)
 
 		return c.String(http.StatusOK, "OK")
 	})

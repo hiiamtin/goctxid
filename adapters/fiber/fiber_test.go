@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
+	"net/http"
 	"net/http/httptest"
 	"sync"
 	"testing"
@@ -522,9 +524,7 @@ func TestMultipleGoroutines(t *testing.T) {
 }
 
 // TestConcurrentRequestsWithGoroutines tests that correlation IDs are preserved correctly
-// when passed to goroutines, even across multiple sequential requests.
-// Note: Fiber's app.Test() doesn't support true concurrent requests, so we test sequential
-// requests with concurrent goroutines to verify context immutability.
+// when passed to goroutines with TRUE concurrent requests using a real HTTP server.
 func TestConcurrentRequestsWithGoroutines(t *testing.T) {
 	app := fiber.New()
 	app.Use(New())
@@ -536,18 +536,18 @@ func TestConcurrentRequestsWithGoroutines(t *testing.T) {
 
 	results := make([]result, 0)
 	var resultsMu sync.Mutex
-	var wg sync.WaitGroup
+	var handlerWg sync.WaitGroup
 
 	app.Get("/test", func(c *fiber.Ctx) error {
 		// Get the context - it's immutable and safe to pass to goroutines
 		ctx := c.UserContext()
 		requestID := goctxid.MustFromContext(ctx)
 
-		wg.Add(1)
+		handlerWg.Add(1)
 		go func(capturedCtx context.Context, expectedID string) {
-			defer wg.Done()
-			// Delay to simulate async processing
-			time.Sleep(10 * time.Millisecond)
+			defer handlerWg.Done()
+			// Delay to simulate async processing and ensure handler completes first
+			time.Sleep(50 * time.Millisecond)
 
 			// Access ID from goroutine - should still be the correct ID
 			capturedID := goctxid.MustFromContext(capturedCtx)
@@ -563,23 +563,64 @@ func TestConcurrentRequestsWithGoroutines(t *testing.T) {
 		return c.SendString("OK")
 	})
 
-	// Send multiple requests - each will spawn a goroutine
-	// The goroutines run concurrently even though requests are sequential
-	numRequests := 5
+	// Find an available port
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("Failed to find available port: %v", err)
+	}
+	port := listener.Addr().(*net.TCPAddr).Port
+	listener.Close()
+
+	// Start a real HTTP server in a goroutine
+	addr := fmt.Sprintf("127.0.0.1:%d", port)
+	go func() {
+		if err := app.Listen(addr); err != nil {
+			t.Logf("Server error: %v", err)
+		}
+	}()
+
+	// Wait for server to start
+	time.Sleep(100 * time.Millisecond)
+
+	// Shutdown server after test
+	defer func() {
+		if err := app.Shutdown(); err != nil {
+			t.Logf("Server shutdown error: %v", err)
+		}
+	}()
+
+	// Send TRUE concurrent requests using goroutines
+	numRequests := 10
+	var clientWg sync.WaitGroup
 
 	for i := 0; i < numRequests; i++ {
-		req := httptest.NewRequest("GET", "/test", nil)
-		req.Header.Set(goctxid.DefaultHeaderKey, fmt.Sprintf("request-%d", i))
+		clientWg.Add(1)
+		go func(requestNum int) {
+			defer clientWg.Done()
 
-		resp, err := app.Test(req, -1) // -1 timeout means no timeout
-		if err != nil {
-			t.Fatalf("Request %d failed: %v", i, err)
-		}
-		resp.Body.Close()
+			url := fmt.Sprintf("http://%s/test", addr)
+			req, err := http.NewRequest("GET", url, nil)
+			if err != nil {
+				t.Errorf("Failed to create request %d: %v", requestNum, err)
+				return
+			}
+			req.Header.Set(goctxid.DefaultHeaderKey, fmt.Sprintf("request-%d", requestNum))
+
+			client := &http.Client{Timeout: 5 * time.Second}
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Errorf("Request %d failed: %v", requestNum, err)
+				return
+			}
+			defer resp.Body.Close()
+		}(i)
 	}
 
-	// Wait for all goroutines to complete
-	wg.Wait()
+	// Wait for all client requests to complete
+	clientWg.Wait()
+
+	// Wait for all handler goroutines to complete
+	handlerWg.Wait()
 
 	// Verify: Each goroutine should capture the correct ID
 	if len(results) != numRequests {
@@ -592,5 +633,18 @@ func TestConcurrentRequestsWithGoroutines(t *testing.T) {
 			t.Errorf("ID mismatch! Request had '%s' but goroutine captured '%s'",
 				r.requestID, r.capturedID)
 		}
+	}
+
+	// Verify all IDs are unique (this is the real test!)
+	seenIDs := make(map[string]bool)
+	for _, r := range results {
+		if seenIDs[r.requestID] {
+			t.Errorf("Duplicate ID found: %s - This means contexts got mixed up!", r.requestID)
+		}
+		seenIDs[r.requestID] = true
+	}
+
+	if len(seenIDs) != numRequests {
+		t.Errorf("Expected %d unique IDs, got %d - Contexts got mixed up!", numRequests, len(seenIDs))
 	}
 }
