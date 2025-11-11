@@ -63,30 +63,30 @@ func TestFromContext(t *testing.T) {
 
 func TestNewContext(t *testing.T) {
 	tests := []struct {
-		name       		string
-		baseCtx    		context.Context
-		id         		string
-		expectedID     	string
-		expectedExists 	bool
+		name           string
+		baseCtx        context.Context
+		id             string
+		expectedID     string
+		expectedExists bool
 	}{
 		{
-			name:       	"creates context with correlation ID",
-			baseCtx:    	context.Background(),
-			id:         	"new-correlation-id",
+			name:           "creates context with correlation ID",
+			baseCtx:        context.Background(),
+			id:             "new-correlation-id",
 			expectedID:     "new-correlation-id",
 			expectedExists: true,
 		},
 		{
-			name:       	"creates context with empty string ID",
-			baseCtx:    	context.Background(),
-			id:         	"",
+			name:           "creates context with empty string ID",
+			baseCtx:        context.Background(),
+			id:             "",
 			expectedID:     "",
 			expectedExists: true,
 		},
 		{
-			name:       	"overwrites existing correlation ID",
-			baseCtx:    	NewContext(context.Background(), "old-id"),
-			id:         	"new-id",
+			name:           "overwrites existing correlation ID",
+			baseCtx:        NewContext(context.Background(), "old-id"),
+			id:             "new-id",
 			expectedID:     "new-id",
 			expectedExists: true,
 		},
@@ -157,13 +157,14 @@ func TestDefaultGenerator(t *testing.T) {
 func TestContextKeyIsolation(t *testing.T) {
 	// Ensure our context key doesn't conflict with other string keys
 	ctx := context.Background()
-	
-	// Add a value with a regular string key
-	ctx = context.WithValue(ctx, "goctxid_key", "wrong-value")
-	
+
+	// Add a value with a different typed key to test isolation
+	type testKey string
+	ctx = context.WithValue(ctx, testKey("goctxid_key"), "wrong-value")
+
 	// Add our correlation ID
 	ctx = NewContext(ctx, "correct-value")
-	
+
 	// Our typed key should retrieve the correct value
 	id, exists := FromContext(ctx)
 	if !exists {
@@ -172,19 +173,19 @@ func TestContextKeyIsolation(t *testing.T) {
 	if id != "correct-value" {
 		t.Errorf("FromContext() = %v, want %v (context key collision detected)", id, "correct-value")
 	}
-	
-	// The string key should still have its value
-	if val := ctx.Value("goctxid_key"); val != "wrong-value" {
-		t.Error("String key value was overwritten (context key collision)")
+
+	// The typed key should still have its value
+	if val := ctx.Value(testKey("goctxid_key")); val != "wrong-value" {
+		t.Error("Typed key value was overwritten (context key collision)")
 	}
 }
 
 func TestConcurrentAccess(t *testing.T) {
 	// Test that context operations are safe for concurrent use
 	ctx := NewContext(context.Background(), "concurrent-test-id")
-	
+
 	done := make(chan bool)
-	
+
 	// Spawn multiple goroutines reading from context
 	for i := 0; i < 100; i++ {
 		go func() {
@@ -195,7 +196,7 @@ func TestConcurrentAccess(t *testing.T) {
 			done <- true
 		}()
 	}
-	
+
 	// Wait for all goroutines
 	for i := 0; i < 100; i++ {
 		<-done
@@ -224,4 +225,3 @@ func BenchmarkDefaultGenerator(b *testing.B) {
 		defaultGenerator()
 	}
 }
-
