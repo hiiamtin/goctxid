@@ -102,58 +102,6 @@ func main() {
 }
 ```
 
-#### Echo
-
-```go
-package main
-
-import (
-    "github.com/labstack/echo/v4"
-    "github.com/hiiamtin/goctxid"
-    goctxid_echo "github.com/hiiamtin/goctxid/adapters/echo"
-)
-
-func main() {
-    e := echo.New()
-
-    // Add middleware
-    e.Use(goctxid_echo.New())
-
-    e.GET("/", func(c echo.Context) error {
-        correlationID := goctxid.MustFromContext(c.Request().Context())
-        return c.String(200, "Correlation ID: "+correlationID)
-    })
-
-    e.Start(":3000")
-}
-```
-
-#### Gin
-
-```go
-package main
-
-import (
-    "github.com/gin-gonic/gin"
-    "github.com/hiiamtin/goctxid"
-    goctxid_gin "github.com/hiiamtin/goctxid/adapters/gin"
-)
-
-func main() {
-    r := gin.Default()
-
-    // Add middleware
-    r.Use(goctxid_gin.New())
-
-    r.GET("/", func(c *gin.Context) {
-        correlationID := goctxid.MustFromContext(c.Request.Context())
-        c.String(200, "Correlation ID: "+correlationID)
-    })
-
-    r.Run(":3000")
-}
-```
-
 #### Standard net/http
 
 ```go
@@ -192,6 +140,24 @@ func main() {
     handler := correlationIDMiddleware(mux)
     http.ListenAndServe(":3000", handler)
 }
+```
+
+#### Echo
+
+See complete example: [examples/echo-basic](./examples/echo-basic)
+
+```go
+import goctxid_echo "github.com/hiiamtin/goctxid/adapters/echo"
+e.Use(goctxid_echo.New())
+```
+
+#### Gin
+
+See complete example: [examples/gin-basic](./examples/gin-basic)
+
+```go
+import goctxid_gin "github.com/hiiamtin/goctxid/adapters/gin"
+r.Use(goctxid_gin.New())
 ```
 
 **Other frameworks?** See [adapters/README.md](./adapters/README.md) for a guide on creating your own adapter.
