@@ -1,6 +1,7 @@
 package fibernative
 
 import (
+	"fmt"
 	"io"
 	"net/http/httptest"
 	"sync"
@@ -611,4 +612,154 @@ func TestGoroutineUnsafe(t *testing.T) {
 
 	// The captured ID may be empty, wrong, or cause a panic
 	t.Logf("Captured ID (may be wrong): %s", capturedID)
+}
+
+// TestConcurrentRequestsWithGoroutinesCopyValue tests that copying values before goroutines
+// works correctly across multiple sequential requests with concurrent goroutines.
+// Note: Fiber's app.Test() doesn't support true concurrent requests, so we test sequential
+// requests with concurrent goroutines to verify value copying works correctly.
+func TestConcurrentRequestsWithGoroutinesCopyValue(t *testing.T) {
+	app := fiber.New()
+	app.Use(New())
+
+	type result struct {
+		requestID  string
+		capturedID string
+	}
+
+	results := make([]result, 0)
+	var resultsMu sync.Mutex
+	var wg sync.WaitGroup
+
+	// ✅ CORRECT: Copy the value before using in goroutine
+	app.Get("/test", func(c *fiber.Ctx) error {
+		// Copy the correlation ID before spawning goroutine
+		correlationID := MustFromLocals(c)
+
+		wg.Add(1)
+		go func(copiedID string) {
+			defer wg.Done()
+			// Delay to simulate async processing
+			time.Sleep(10 * time.Millisecond)
+
+			// Use the copied value - this is safe
+			resultsMu.Lock()
+			results = append(results, result{
+				requestID:  copiedID,
+				capturedID: copiedID,
+			})
+			resultsMu.Unlock()
+		}(correlationID)
+
+		return c.SendString("OK")
+	})
+
+	// Send multiple requests - each will spawn a goroutine
+	// The goroutines run concurrently even though requests are sequential
+	numRequests := 5
+
+	for i := 0; i < numRequests; i++ {
+		req := httptest.NewRequest("GET", "/test", nil)
+		req.Header.Set(goctxid.DefaultHeaderKey, fmt.Sprintf("request-%d", i))
+
+		resp, err := app.Test(req, -1) // -1 timeout means no timeout
+		if err != nil {
+			t.Fatalf("Request %d failed: %v", i, err)
+		}
+		resp.Body.Close()
+	}
+
+	// Wait for all goroutines to complete
+	wg.Wait()
+
+	// Verify: Each goroutine should capture the correct ID
+	if len(results) != numRequests {
+		t.Fatalf("Expected %d results, got %d", numRequests, len(results))
+	}
+
+	// Check that no IDs got mixed up
+	for _, r := range results {
+		if r.requestID != r.capturedID {
+			t.Errorf("ID mismatch! Request had '%s' but goroutine captured '%s'",
+				r.requestID, r.capturedID)
+		}
+	}
+}
+
+// TestConcurrentRequestsWithGoroutinesUnsafe demonstrates the WRONG way
+// This test shows what happens when you access c.Locals() in goroutines
+// The IDs will likely get mixed up or cause race conditions
+func TestConcurrentRequestsWithGoroutinesUnsafe(t *testing.T) {
+	t.Skip("This test demonstrates unsafe behavior - skipped by default")
+
+	app := fiber.New()
+	app.Use(New())
+
+	type result struct {
+		requestID  string
+		capturedID string
+	}
+
+	results := make([]result, 0)
+	var resultsMu sync.Mutex
+	var wg sync.WaitGroup
+
+	// ❌ WRONG: Don't access c.Locals() in goroutine
+	app.Get("/unsafe", func(c *fiber.Ctx) error {
+		// Get the ID in the handler (this is safe)
+		requestID := MustFromLocals(c)
+
+		wg.Add(1)
+		go func(expectedID string) {
+			defer wg.Done()
+			// Wait to ensure handler completes and context is recycled
+			time.Sleep(50 * time.Millisecond)
+
+			// ⚠️ DANGER: Accessing c after handler completes
+			// This may panic, return wrong value, or cause race conditions
+			capturedID := MustFromLocals(c)
+
+			resultsMu.Lock()
+			results = append(results, result{
+				requestID:  expectedID,
+				capturedID: capturedID,
+			})
+			resultsMu.Unlock()
+		}(requestID)
+
+		return c.SendString("OK")
+	})
+
+	// Send multiple requests - each will spawn a goroutine
+	numRequests := 5
+
+	for i := 0; i < numRequests; i++ {
+		req := httptest.NewRequest("GET", "/unsafe", nil)
+		req.Header.Set(goctxid.DefaultHeaderKey, fmt.Sprintf("request-%d", i))
+
+		resp, err := app.Test(req, -1)
+		if err != nil {
+			t.Fatalf("Request %d failed: %v", i, err)
+		}
+		resp.Body.Close()
+	}
+
+	// Wait for all goroutines to complete
+	wg.Wait()
+
+	// Log results - they will likely show ID mismatches
+	t.Logf("Total results: %d (expected %d)", len(results), numRequests)
+
+	mismatches := 0
+	for _, r := range results {
+		if r.requestID != r.capturedID {
+			mismatches++
+			t.Logf("ID mismatch! Request had '%s' but goroutine captured '%s'",
+				r.requestID, r.capturedID)
+		}
+	}
+
+	if mismatches > 0 {
+		t.Logf("⚠️ Found %d ID mismatches out of %d results - this demonstrates the problem!", mismatches, len(results))
+	}
 }

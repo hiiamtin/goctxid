@@ -1,6 +1,7 @@
 package gin
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -500,5 +501,96 @@ func TestMultipleGoroutines(t *testing.T) {
 		if id != "gin-multi-id" {
 			t.Errorf("Goroutine %d: expected 'gin-multi-id', got '%s'", i, id)
 		}
+	}
+}
+
+// TestConcurrentRequestsWithGoroutines tests that correlation IDs don't get mixed up
+// when multiple concurrent requests each spawn goroutines that access the ID
+func TestConcurrentRequestsWithGoroutines(t *testing.T) {
+	r := gin.New()
+	r.Use(New())
+
+	type result struct {
+		requestID  string
+		capturedID string
+	}
+
+	results := make([]result, 0)
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	r.GET("/test", func(c *gin.Context) {
+		// Get the context - it's immutable and safe to pass to goroutines
+		ctx := c.Request.Context()
+		requestID := goctxid.MustFromContext(ctx)
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			// Delay to ensure handler completes and other requests come in
+			// This simulates real-world async processing
+			time.Sleep(50 * time.Millisecond)
+
+			// Access ID from goroutine - should still be the correct ID
+			capturedID := goctxid.MustFromContext(ctx)
+
+			mu.Lock()
+			results = append(results, result{
+				requestID:  requestID,
+				capturedID: capturedID,
+			})
+			mu.Unlock()
+		}()
+
+		c.String(http.StatusOK, "OK")
+	})
+
+	// Send multiple concurrent requests with different IDs
+	numRequests := 20
+	requestWg := sync.WaitGroup{}
+
+	for i := 0; i < numRequests; i++ {
+		requestWg.Add(1)
+		go func(index int) {
+			defer requestWg.Done()
+
+			req := httptest.NewRequest("GET", "/test", nil)
+			req.Header.Set(goctxid.DefaultHeaderKey, fmt.Sprintf("request-%d", index))
+			rec := httptest.NewRecorder()
+
+			r.ServeHTTP(rec, req)
+		}(i)
+	}
+
+	// Wait for all requests to complete
+	requestWg.Wait()
+
+	// Wait for all goroutines to complete
+	wg.Wait()
+
+	// Verify: Each goroutine should capture the SAME ID as its request
+	if len(results) != numRequests {
+		t.Fatalf("Expected %d results, got %d", numRequests, len(results))
+	}
+
+	// Check that no IDs got mixed up
+	for _, r := range results {
+		if r.requestID != r.capturedID {
+			t.Errorf("ID mismatch! Request had '%s' but goroutine captured '%s'",
+				r.requestID, r.capturedID)
+		}
+	}
+
+	// Verify all IDs are unique (no duplicates)
+	seenIDs := make(map[string]bool)
+	for _, r := range results {
+		if seenIDs[r.requestID] {
+			t.Errorf("Duplicate ID found: %s", r.requestID)
+		}
+		seenIDs[r.requestID] = true
+	}
+
+	if len(seenIDs) != numRequests {
+		t.Errorf("Expected %d unique IDs, got %d", numRequests, len(seenIDs))
 	}
 }
