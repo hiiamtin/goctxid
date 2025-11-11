@@ -368,7 +368,16 @@ log.Printf("[%s] Processing request", correlationID)
 
 #### `NewContext(ctx context.Context, id string) context.Context`
 
-Creates a new context with the correlation ID. Primarily used internally by the middleware.
+Creates a new context with the correlation ID.
+
+**⚠️ Note:** This function is primarily intended for middleware adapters and custom middleware implementations. Most users should use the provided framework adapters instead of calling this directly.
+
+**When to use:**
+
+* ✅ Creating custom middleware for unsupported frameworks
+* ✅ Implementing custom middleware patterns with `net/http`
+* ✅ Testing scenarios where you need to manually inject a correlation ID
+* ❌ Regular application code (use `FromContext` or `MustFromContext` instead)
 
 **Parameters:**
 
@@ -378,6 +387,19 @@ Creates a new context with the correlation ID. Primarily used internally by the 
 **Returns:**
 
 * `context.Context`: New context with the correlation ID
+
+**Example (custom middleware):**
+
+```go
+func customMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        id := goctxid.DefaultGenerator()
+        ctx := goctxid.NewContext(r.Context(), id)
+        r = r.WithContext(ctx)
+        next.ServeHTTP(w, r)
+    })
+}
+```
 
 ## 🎨 Common Patterns
 

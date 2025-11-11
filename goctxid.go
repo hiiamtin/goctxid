@@ -48,8 +48,28 @@ func MustFromContext(ctx context.Context) string {
 	return id
 }
 
-// NewContext create a new context with the correlation ID
-// This function is used by the middleware
+// NewContext creates a new context with the correlation ID.
+//
+// This function is primarily intended for use by middleware adapters and
+// custom middleware implementations. Most users should not need to call this
+// directly - instead, use the provided framework adapters (fiber, echo, gin)
+// or the standard net/http middleware pattern.
+//
+// Use cases for calling NewContext directly:
+//   - Creating custom middleware for unsupported frameworks
+//   - Implementing custom middleware patterns with net/http
+//   - Testing scenarios where you need to manually inject a correlation ID
+//
+// Example (custom middleware):
+//
+//	func customMiddleware(next http.Handler) http.Handler {
+//	    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+//	        id := goctxid.DefaultGenerator()
+//	        ctx := goctxid.NewContext(r.Context(), id)
+//	        r = r.WithContext(ctx)
+//	        next.ServeHTTP(w, r)
+//	    })
+//	}
 func NewContext(ctx context.Context, id string) context.Context {
 	return context.WithValue(ctx, ctxKey, id)
 }

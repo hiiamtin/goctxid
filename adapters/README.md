@@ -308,21 +308,54 @@ All adapters use these core functions:
 
 Creates a new context with the correlation ID.
 
+**Intended for:** Middleware adapters and custom middleware implementations.
+
+**Usage in adapters:**
+
+```go
+// Inside your custom adapter
+newCtx := goctxid.NewContext(ctx, correlationID)
+```
+
 ### `goctxid.FromContext(ctx context.Context) (string, bool)`
 
 Retrieves the correlation ID from context.
+
+**Intended for:** Application code to access the correlation ID.
+
+**Usage:**
+
+```go
+id, exists := goctxid.FromContext(ctx)
+if exists {
+    log.Printf("Request ID: %s", id)
+}
+```
 
 ### `goctxid.MustFromContext(ctx context.Context) string`
 
 Retrieves the correlation ID or returns empty string.
 
+**Intended for:** Application code when you don't need to check if ID exists.
+
+**Usage:**
+
+```go
+id := goctxid.MustFromContext(ctx)
+log.Printf("[%s] Processing request", id)
+```
+
 ### `goctxid.DefaultGenerator() string`
 
 Default UUID v4 generator (thread-safe).
 
+**Intended for:** Adapters as fallback when no custom generator is provided.
+
 ### `goctxid.DefaultHeaderKey`
 
 Default header key: `"X-Correlation-ID"`
+
+**Intended for:** Adapters as fallback when no custom header key is provided.
 
 ## Configuration
 
