@@ -10,9 +10,9 @@ goctxid/
 │   ├── fiber/              # Fiber framework adapter (context-based)
 │   │   ├── fiber.go
 │   │   └── fiber_test.go   # (100% coverage)
-│   ├── fiberlocals/        # Fiber framework adapter (c.Locals() - Fiber-native)
-│   │   ├── fiberlocals.go
-│   │   └── fiberlocals_test.go  # (100% coverage)
+│   ├── fibernative/        # Fiber framework adapter (c.Locals() - Fiber-native)
+│   │   ├── fibernative.go
+│   │   └── fibernative_test.go  # (100% coverage)
 │   ├── echo/               # Echo framework adapter
 │   │   ├── echo.go
 │   │   └── echo_test.go    # (100% coverage)
@@ -23,7 +23,7 @@ goctxid/
     ├── README.md           # Examples documentation
     ├── basic/              # Basic Fiber usage example (context-based)
     │   └── main.go
-    ├── fiber-locals/       # Fiber usage with c.Locals() (Fiber-native)
+    ├── fiber-native/       # Fiber usage with c.Locals() (Fiber-native)
     │   └── main.go
     ├── echo-basic/         # Basic Echo usage example
     │   └── main.go

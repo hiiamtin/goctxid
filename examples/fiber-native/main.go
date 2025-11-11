@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v2"
-	goctxid_fiberlocals "github.com/hiiamtin/goctxid/adapters/fiberlocals"
+	goctxid_fibernative "github.com/hiiamtin/goctxid/adapters/fibernative"
 )
 
 func main() {
@@ -12,12 +12,12 @@ func main() {
 
 	// Add goctxid middleware using Fiber's c.Locals() (Fiber-native way)
 	// This is more performant than the context-based adapter
-	app.Use(goctxid_fiberlocals.New())
+	app.Use(goctxid_fibernative.New())
 
 	// Example route - basic usage
 	app.Get("/", func(c *fiber.Ctx) error {
 		// Get correlation ID from Fiber's Locals (Fiber-native way)
-		correlationID, exists := goctxid_fiberlocals.FromLocals(c)
+		correlationID, exists := goctxid_fibernative.FromLocals(c)
 		if !exists {
 			return c.Status(500).SendString("Correlation ID not found")
 		}
@@ -31,7 +31,7 @@ func main() {
 	// Example route - using MustFromLocals
 	app.Get("/user/:id", func(c *fiber.Ctx) error {
 		// MustFromLocals returns empty string if not found (no need to check exists)
-		correlationID := goctxid_fiberlocals.MustFromLocals(c)
+		correlationID := goctxid_fibernative.MustFromLocals(c)
 		userID := c.Params("id")
 
 		// Use correlation ID in logs
@@ -45,7 +45,7 @@ func main() {
 
 	// Example route - custom configuration
 	app.Get("/custom", func(c *fiber.Ctx) error {
-		correlationID := goctxid_fiberlocals.MustFromLocals(c)
+		correlationID := goctxid_fibernative.MustFromLocals(c)
 
 		return c.JSON(fiber.Map{
 			"message":        "Custom configuration example",
@@ -55,7 +55,7 @@ func main() {
 
 	// Example route - service layer integration
 	app.Get("/order/:id", func(c *fiber.Ctx) error {
-		correlationID := goctxid_fiberlocals.MustFromLocals(c)
+		correlationID := goctxid_fibernative.MustFromLocals(c)
 		orderID := c.Params("id")
 
 		// Pass correlation ID to service layer

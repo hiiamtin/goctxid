@@ -70,6 +70,7 @@ These are the fundamental operations used by all adapters:
 | `DefaultGenerator()` (UUID v4) | 349.3 ns | 64 B | 2 | Generate new UUID |
 
 **Key Takeaways:**
+
 - Context operations are extremely fast (< 25 ns)
 - UUID generation is the most expensive operation (~350 ns)
 - Zero allocations when reading from context

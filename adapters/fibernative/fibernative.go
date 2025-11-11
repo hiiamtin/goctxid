@@ -1,4 +1,4 @@
-package fiberlocals
+package fibernative
 
 import (
 	"github.com/gofiber/fiber/v2"
@@ -67,7 +67,7 @@ func FromLocals(c *fiber.Ctx) (string, bool) {
 	if id == nil {
 		return "", false
 	}
-	
+
 	idStr, ok := id.(string)
 	return idStr, ok
 }
@@ -77,4 +77,3 @@ func MustFromLocals(c *fiber.Ctx) string {
 	id, _ := FromLocals(c)
 	return id
 }
-
