@@ -7,16 +7,23 @@ goctxid/
 ├── BENCHMARKS.md           # Performance benchmarks and analysis
 ├── adapters/               # Framework adapters
 │   ├── README.md           # Adapter documentation and creation guide
-│   ├── fiber/              # Fiber framework adapter
+│   ├── fiber/              # Fiber framework adapter (context-based)
 │   │   ├── fiber.go
 │   │   └── fiber_test.go   # (100% coverage)
+│   ├── fiberlocals/        # Fiber framework adapter (c.Locals() - Fiber-native)
+│   │   ├── fiberlocals.go
+│   │   └── fiberlocals_test.go  # (100% coverage)
 │   ├── echo/               # Echo framework adapter
-│   │   └── echo.go
+│   │   ├── echo.go
+│   │   └── echo_test.go    # (100% coverage)
 │   └── gin/                # Gin framework adapter
-│       └── gin.go
+│       ├── gin.go
+│       └── gin_test.go     # (100% coverage)
 └── examples/               # Usage examples
     ├── README.md           # Examples documentation
-    ├── basic/              # Basic Fiber usage example
+    ├── basic/              # Basic Fiber usage example (context-based)
+    │   └── main.go
+    ├── fiber-locals/       # Fiber usage with c.Locals() (Fiber-native)
     │   └── main.go
     ├── echo-basic/         # Basic Echo usage example
     │   └── main.go
