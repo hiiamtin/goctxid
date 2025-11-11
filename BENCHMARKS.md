@@ -16,11 +16,13 @@ These benchmarks compare the performance impact of using the goctxid middleware.
 ### Analysis
 
 **Overhead Summary:**
+
 - **Time overhead**: ~1,200-1,400 ns per request (~25-30% increase)
 - **Memory overhead**: ~250-300 bytes per request
 - **Allocation overhead**: +5-6 allocations per request
 
 **Key Insights:**
+
 1. **Minimal overhead**: The middleware adds only ~1.3 microseconds per request
 2. **Existing ID is faster**: Using an existing correlation ID (5,861 ns) is slightly faster than generating a new one (5,973 ns)
 3. **Context access is cheap**: Reading from context adds negligible overhead (~5 ns)
@@ -53,4 +55,3 @@ go test -bench=BenchmarkMiddleware -benchmem
 # Compare with baseline
 go test -bench=Benchmark -benchmem -run=^$
 ```
-
