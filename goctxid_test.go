@@ -137,20 +137,20 @@ func TestMustFromContext(t *testing.T) {
 
 func TestDefaultGenerator(t *testing.T) {
 	// Test that default generator produces non-empty UUIDs
-	id1 := defaultGenerator()
+	id1 := DefaultGenerator()
 	if id1 == "" {
-		t.Error("defaultGenerator() returned empty string")
+		t.Error("DefaultGenerator() returned empty string")
 	}
 
 	// Test that it generates unique IDs
-	id2 := defaultGenerator()
+	id2 := DefaultGenerator()
 	if id1 == id2 {
-		t.Error("defaultGenerator() produced duplicate IDs")
+		t.Error("DefaultGenerator() produced duplicate IDs")
 	}
 
 	// Test UUID format (basic check for length and hyphens)
 	if len(id1) != 36 {
-		t.Errorf("defaultGenerator() produced ID with wrong length: got %d, want 36", len(id1))
+		t.Errorf("DefaultGenerator() produced ID with wrong length: got %d, want 36", len(id1))
 	}
 }
 
@@ -222,6 +222,6 @@ func BenchmarkFromContext(b *testing.B) {
 func BenchmarkDefaultGenerator(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		defaultGenerator()
+		DefaultGenerator()
 	}
 }

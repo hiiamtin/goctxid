@@ -9,6 +9,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/hiiamtin/goctxid"
+	goctxid_fiber "github.com/hiiamtin/goctxid/adapters/fiber"
 )
 
 // Logger is a simple structured logger that includes correlation ID
@@ -22,21 +23,21 @@ func NewLogger(prefix string) *Logger {
 }
 
 // Info logs an info message with correlation ID from context
-func (l *Logger) Info(ctx context.Context, format string, args ...interface{}) {
+func (l *Logger) Info(ctx context.Context, format string, args ...any) {
 	correlationID := goctxid.MustFromContext(ctx)
 	message := fmt.Sprintf(format, args...)
 	log.Printf("[INFO] [%s] [%s] %s", l.prefix, correlationID, message)
 }
 
 // Error logs an error message with correlation ID from context
-func (l *Logger) Error(ctx context.Context, format string, args ...interface{}) {
+func (l *Logger) Error(ctx context.Context, format string, args ...any) {
 	correlationID := goctxid.MustFromContext(ctx)
 	message := fmt.Sprintf(format, args...)
 	log.Printf("[ERROR] [%s] [%s] %s", l.prefix, correlationID, message)
 }
 
 // Warn logs a warning message with correlation ID from context
-func (l *Logger) Warn(ctx context.Context, format string, args ...interface{}) {
+func (l *Logger) Warn(ctx context.Context, format string, args ...any) {
 	correlationID := goctxid.MustFromContext(ctx)
 	message := fmt.Sprintf(format, args...)
 	log.Printf("[WARN] [%s] [%s] %s", l.prefix, correlationID, message)
@@ -53,7 +54,7 @@ func NewUserService() *UserService {
 	}
 }
 
-func (s *UserService) GetUser(ctx context.Context, userID string) (map[string]interface{}, error) {
+func (s *UserService) GetUser(ctx context.Context, userID string) (map[string]any, error) {
 	s.logger.Info(ctx, "Fetching user: %s", userID)
 
 	// Simulate database query
@@ -65,7 +66,7 @@ func (s *UserService) GetUser(ctx context.Context, userID string) (map[string]in
 	}
 
 	s.logger.Info(ctx, "Successfully fetched user: %s", userID)
-	return map[string]interface{}{
+	return map[string]any{
 		"id":   userID,
 		"name": "John Doe",
 	}, nil
@@ -137,7 +138,7 @@ func main() {
 	requestLogger := NewLogger("HTTP")
 
 	// Add goctxid middleware first
-	app.Use(goctxid.New())
+	app.Use(goctxid_fiber.New())
 
 	// Add custom logging middleware
 	app.Use(loggingMiddleware(requestLogger))
@@ -197,4 +198,3 @@ func main() {
 
 	log.Fatal(app.Listen(":3000"))
 }
-

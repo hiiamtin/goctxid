@@ -29,7 +29,9 @@ type Config struct {
 	Generator func() string
 }
 
-func defaultGenerator() string {
+// DefaultGenerator is the default UUID v4 generator
+// Exported so adapters can use it as a fallback
+func DefaultGenerator() string {
 	return uuid.NewString()
 }
 

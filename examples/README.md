@@ -6,9 +6,10 @@ This directory contains practical examples demonstrating how to use the goctxid 
 
 | Example | Description | Key Features |
 |---------|-------------|--------------|
-| [basic](./basic) | Simple usage with default configuration | Default middleware setup, accessing correlation IDs |
-| [custom-generator](./custom-generator) | Custom ID generation strategies | Sequential IDs, prefixed UUIDs, custom headers |
-| [logging](./logging) | Integration with logging systems | Structured logging, service layer integration, request tracing |
+| [basic](./basic) | Simple usage with default configuration (Fiber) | Default middleware setup, accessing correlation IDs |
+| [custom-generator](./custom-generator) | Custom ID generation strategies (Fiber) | Sequential IDs, prefixed UUIDs, custom headers |
+| [logging](./logging) | Integration with logging systems (Fiber) | Structured logging, service layer integration, request tracing |
+| [standard-http](./standard-http) | Using with standard net/http | Framework-agnostic usage, custom middleware |
 
 ## Running the Examples
 
@@ -42,16 +43,22 @@ All examples start a server on `http://localhost:3000`. Each example includes cu
 
 ## Example Details
 
-### 1. Basic Usage
+### 1. Basic Usage (Fiber)
 
 **Location:** `examples/basic/`
 
-Demonstrates the simplest way to use goctxid:
+Demonstrates the simplest way to use goctxid with Fiber:
 
 - Adding middleware with default configuration
 - Accessing correlation IDs in handlers
 - Automatic ID generation
 - Using existing IDs from request headers
+
+**Import:**
+
+```go
+import goctxid_fiber "github.com/hiiamtin/goctxid/adapters/fiber"
+```
 
 **Try it:**
 

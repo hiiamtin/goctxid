@@ -7,7 +7,12 @@
 ## 🚀 Features
 
 * **Framework Agnostic:** Core logic is built on standard `context.Context`.
-* **Middleware Adapters:** Includes a ready-to-use middleware for [Fiber](https://gofiber.io/).
+* **Multiple Framework Support:**
+  * ✅ [Fiber](https://gofiber.io/) (adapter in `adapters/fiber`)
+  * ✅ Standard `net/http` (no adapter needed - use core package directly)
+  * ✅ [Echo](https://echo.labstack.com/) (adapter in `adapters/echo`)
+  * ✅ [Gin](https://gin-gonic.com/) (adapter in `adapters/gin`)
+  * 🔧 Easy to create adapters for other frameworks (Chi, Gorilla, etc.)
 * **Extract or Generate:** Automatically extracts an existing ID from request headers (e.g., `X-Correlation-ID`) or generates a new one if not found.
 * **Propagation:**
       - Injects the ID into the `context.Context` (via `c.UserContext()` in Fiber) for use in your application logic (logging, downstream API calls).
@@ -33,13 +38,14 @@ import (
     "log"
     "github.com/gofiber/fiber/v2"
     "github.com/hiiamtin/goctxid"
+    goctxid_fiber "github.com/hiiamtin/goctxid/adapters/fiber"
 )
 
 func main() {
     app := fiber.New()
 
     // Add goctxid middleware
-    app.Use(goctxid.New())
+    app.Use(goctxid_fiber.New())
 
     app.Get("/", func(c *fiber.Ctx) error {
         // Get correlation ID from context
@@ -58,7 +64,7 @@ func main() {
 ### Custom Configuration
 
 ```go
-app.Use(goctxid.New(goctxid.Config{
+app.Use(goctxid_fiber.New(goctxid.Config{
     HeaderKey: "X-Request-ID",  // Custom header name
     Generator: func() string {   // Custom ID generator
         return "REQ-" + uuid.NewString()
@@ -66,11 +72,46 @@ app.Use(goctxid.New(goctxid.Config{
 }))
 ```
 
+## 🔌 Framework Support
+
+### Using with Different Frameworks
+
+**Fiber:**
+
+```go
+import goctxid_fiber "github.com/hiiamtin/goctxid/adapters/fiber"
+app.Use(goctxid_fiber.New())
+```
+
+**Standard net/http:**
+
+```go
+import "github.com/hiiamtin/goctxid"
+// See examples/standard-http/ for complete implementation
+```
+
+**Echo:**
+
+```go
+import goctxid_echo "github.com/hiiamtin/goctxid/adapters/echo"
+e.Use(goctxid_echo.New())
+```
+
+**Gin:**
+
+```go
+import goctxid_gin "github.com/hiiamtin/goctxid/adapters/gin"
+r.Use(goctxid_gin.New())
+```
+
+**Other frameworks?** See [adapters/README.md](./adapters/README.md) for a guide on creating your own adapter.
+
 ## 📚 Examples
 
 Check out the [examples/](./examples) directory for complete, runnable examples:
 
-* **[basic](./examples/basic)** - Simple usage with default configuration
+* **[basic](./examples/basic)** - Simple usage with Fiber
+* **[standard-http](./examples/standard-http)** - Using with standard net/http
 * **[custom-generator](./examples/custom-generator)** - Custom ID generation strategies
 * **[logging](./examples/logging)** - Integration with logging systems and service layers
 
@@ -213,9 +254,9 @@ func (s *UserService) GetUser(ctx context.Context, userID string) (*User, error)
 
 The middleware has minimal overhead:
 
-- **Time overhead**: ~1.3 microseconds per request (~25-30% increase)
-- **Memory overhead**: ~250-300 bytes per request
-- **Throughput**: 200,000+ requests/second
+* **Time overhead**: ~1.3 microseconds per request (~25-30% increase)
+* **Memory overhead**: ~250-300 bytes per request
+* **Throughput**: 200,000+ requests/second
 
 See [BENCHMARKS.md](./BENCHMARKS.md) for detailed performance analysis.
 

@@ -1,18 +1,27 @@
 goctxid/
-├── goctxid.go              # Core package - context operations
+├── goctxid.go              # Core package - framework-agnostic context operations
 ├── goctxid_test.go         # Core package tests (100% coverage)
-├── fiber.go                # Fiber framework adapter
-├── fiber_test.go           # Fiber middleware tests
 ├── go.mod                  # Go module definition
 ├── go.sum                  # Dependency checksums
 ├── README.md               # Main documentation
 ├── BENCHMARKS.md           # Performance benchmarks and analysis
+├── adapters/               # Framework adapters
+│   ├── README.md           # Adapter documentation and creation guide
+│   ├── fiber/              # Fiber framework adapter
+│   │   ├── fiber.go
+│   │   └── fiber_test.go   # (100% coverage)
+│   ├── echo/               # Echo framework adapter
+│   │   └── echo.go
+│   └── gin/                # Gin framework adapter
+│       └── gin.go
 └── examples/               # Usage examples
     ├── README.md           # Examples documentation
-    ├── basic/              # Basic usage example
+    ├── basic/              # Basic Fiber usage example
     │   └── main.go
-    ├── custom-generator/   # Custom ID generator examples
+    ├── custom-generator/   # Custom ID generator examples (Fiber)
     │   └── main.go
-    └── logging/            # Logging integration example
+    ├── logging/            # Logging integration example (Fiber)
+    │   └── main.go
+    └── standard-http/      # Standard net/http example
         └── main.go
 

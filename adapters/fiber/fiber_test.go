@@ -1,4 +1,4 @@
-package goctxid
+package fiber
 
 import (
 	"io"
@@ -8,12 +8,13 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/hiiamtin/goctxid"
 )
 
 func TestNew(t *testing.T) {
 	tests := []struct {
 		name               string
-		config             []Config
+		config             []goctxid.Config
 		requestHeader      string
 		requestHeaderValue string
 		expectedInContext  string
@@ -27,20 +28,20 @@ func TestNew(t *testing.T) {
 			requestHeaderValue: "",
 			expectedInContext:  "", // Will be generated, just check it exists
 			expectedInResponse: "", // Will be generated, just check it exists
-			checkResponseKey:   DefaultHeaderKey,
+			checkResponseKey:   goctxid.DefaultHeaderKey,
 		},
 		{
 			name:               "uses existing ID from request header",
 			config:             nil,
-			requestHeader:      DefaultHeaderKey,
+			requestHeader:      goctxid.DefaultHeaderKey,
 			requestHeaderValue: "existing-correlation-id",
 			expectedInContext:  "existing-correlation-id",
 			expectedInResponse: "existing-correlation-id",
-			checkResponseKey:   DefaultHeaderKey,
+			checkResponseKey:   goctxid.DefaultHeaderKey,
 		},
 		{
 			name: "uses custom header key",
-			config: []Config{
+			config: []goctxid.Config{
 				{
 					HeaderKey: "X-Custom-ID",
 				},
@@ -53,7 +54,7 @@ func TestNew(t *testing.T) {
 		},
 		{
 			name: "uses custom generator",
-			config: []Config{
+			config: []goctxid.Config{
 				{
 					Generator: func() string {
 						return "custom-generated-id"
@@ -64,7 +65,7 @@ func TestNew(t *testing.T) {
 			requestHeaderValue: "",
 			expectedInContext:  "custom-generated-id",
 			expectedInResponse: "custom-generated-id",
-			checkResponseKey:   DefaultHeaderKey,
+			checkResponseKey:   goctxid.DefaultHeaderKey,
 		},
 	}
 
@@ -82,7 +83,7 @@ func TestNew(t *testing.T) {
 			// Test handler that checks context
 			var contextID string
 			app.Get("/test", func(c *fiber.Ctx) error {
-				id, exists := FromContext(c.UserContext())
+				id, exists := goctxid.FromContext(c.UserContext())
 				if !exists {
 					t.Error("Correlation ID not found in context")
 				}
@@ -138,25 +139,25 @@ func TestNew(t *testing.T) {
 func TestConfigDefault(t *testing.T) {
 	tests := []struct {
 		name              string
-		config            []Config
+		config            []goctxid.Config
 		expectedHeaderKey string
 		testGenerator     bool
 	}{
 		{
 			name:              "uses defaults when no config provided",
 			config:            nil,
-			expectedHeaderKey: DefaultHeaderKey,
+			expectedHeaderKey: goctxid.DefaultHeaderKey,
 			testGenerator:     true,
 		},
 		{
 			name:              "uses defaults when empty config provided",
-			config:            []Config{{}},
-			expectedHeaderKey: DefaultHeaderKey,
+			config:            []goctxid.Config{{}},
+			expectedHeaderKey: goctxid.DefaultHeaderKey,
 			testGenerator:     true,
 		},
 		{
 			name: "uses custom header key",
-			config: []Config{
+			config: []goctxid.Config{
 				{HeaderKey: "X-Request-ID"},
 			},
 			expectedHeaderKey: "X-Request-ID",
@@ -164,12 +165,12 @@ func TestConfigDefault(t *testing.T) {
 		},
 		{
 			name: "uses custom generator",
-			config: []Config{
+			config: []goctxid.Config{
 				{
 					Generator: func() string { return "test" },
 				},
 			},
-			expectedHeaderKey: DefaultHeaderKey,
+			expectedHeaderKey: goctxid.DefaultHeaderKey,
 			testGenerator:     false,
 		},
 	}
@@ -204,13 +205,13 @@ func TestMiddlewareChaining(t *testing.T) {
 	var firstHandlerID, secondHandlerID string
 
 	app.Use(func(c *fiber.Ctx) error {
-		id, _ := FromContext(c.UserContext())
+		id, _ := goctxid.FromContext(c.UserContext())
 		firstHandlerID = id
 		return c.Next()
 	})
 
 	app.Get("/test", func(c *fiber.Ctx) error {
-		id, _ := FromContext(c.UserContext())
+		id, _ := goctxid.FromContext(c.UserContext())
 		secondHandlerID = id
 		return c.SendString("OK")
 	})
@@ -240,7 +241,7 @@ func TestConcurrentRequests(t *testing.T) {
 	app.Use(New())
 
 	app.Get("/test", func(c *fiber.Ctx) error {
-		id, exists := FromContext(c.UserContext())
+		id, exists := goctxid.FromContext(c.UserContext())
 		if !exists {
 			t.Error("Correlation ID not found in context")
 		}
@@ -302,7 +303,7 @@ func TestGeneratorThreadSafety(t *testing.T) {
 	}
 
 	app := fiber.New()
-	app.Use(New(Config{Generator: generator}))
+	app.Use(New(goctxid.Config{Generator: generator}))
 
 	app.Get("/test", func(c *fiber.Ctx) error {
 		return c.SendString("OK")
@@ -378,7 +379,7 @@ func BenchmarkMiddlewareWithExistingID(b *testing.B) {
 	})
 
 	req := httptest.NewRequest("GET", "/test", nil)
-	req.Header.Set(DefaultHeaderKey, "existing-id-123")
+	req.Header.Set(goctxid.DefaultHeaderKey, "existing-id-123")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -393,7 +394,7 @@ func BenchmarkMiddlewareWithContextAccess(b *testing.B) {
 	app.Use(New())
 	app.Get("/test", func(c *fiber.Ctx) error {
 		// Simulate real-world usage: accessing the correlation ID
-		id, _ := FromContext(c.UserContext())
+		id, _ := goctxid.FromContext(c.UserContext())
 		_ = id // Use the ID
 		return c.SendString("OK")
 	})

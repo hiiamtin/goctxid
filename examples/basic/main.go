@@ -5,13 +5,14 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/hiiamtin/goctxid"
+	goctxid_fiber "github.com/hiiamtin/goctxid/adapters/fiber"
 )
 
 func main() {
 	app := fiber.New()
 
 	// Add goctxid middleware
-	app.Use(goctxid.New())
+	app.Use(goctxid_fiber.New())
 
 	// Example route
 	app.Get("/", func(c *fiber.Ctx) error {
@@ -49,4 +50,3 @@ func main() {
 
 	log.Fatal(app.Listen(":3000"))
 }
-

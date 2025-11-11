@@ -1,13 +1,14 @@
-package goctxid
+package gin
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gin-gonic/gin"
+	"github.com/hiiamtin/goctxid"
 )
 
 // configDefault is a helper function that merges the provided config with the default config
-func configDefault(config ...Config) Config {
+func configDefault(config ...goctxid.Config) goctxid.Config {
 
-	cfg := Config{}
+	cfg := goctxid.Config{}
 
 	// If a config is provided, use it
 	if len(config) > 0 {
@@ -16,27 +17,26 @@ func configDefault(config ...Config) Config {
 
 	// Check and fill in default values
 	if cfg.HeaderKey == "" {
-		cfg.HeaderKey = DefaultHeaderKey
+		cfg.HeaderKey = goctxid.DefaultHeaderKey
 	}
 	// Generator must be thread-safe as middleware runs concurrently for multiple requests
 	if cfg.Generator == nil {
-		cfg.Generator = defaultGenerator
+		cfg.Generator = goctxid.DefaultGenerator
 	}
 
 	return cfg
 }
 
-// New is the main function that users will call
-// It returns a fiber.Handler (Middleware)
-func New(config ...Config) fiber.Handler {
+// New creates a new Gin middleware for correlation ID management
+func New(config ...goctxid.Config) gin.HandlerFunc {
 
 	// 1. Merge the provided config with the default config
 	cfg := configDefault(config...)
 
 	// 2. Return the middleware function
-	return func(c *fiber.Ctx) error {
+	return func(c *gin.Context) {
 		// 3. Extract the correlation ID from the request header
-		correlationID := c.Get(cfg.HeaderKey)
+		correlationID := c.GetHeader(cfg.HeaderKey)
 
 		// 4. If not found, generate a new one
 		if correlationID == "" {
@@ -44,18 +44,19 @@ func New(config ...Config) fiber.Handler {
 		}
 
 		// 5. Set the response header (send back to the client)
-		c.Set(cfg.HeaderKey, correlationID)
+		c.Header(cfg.HeaderKey, correlationID)
 
-		// 6. Get the current user context
-		ctx := c.UserContext()
+		// 6. Get the current request context
+		ctx := c.Request.Context()
 
-		// 7. Create a new context with our ID (using helper from goctxid.go)
-		newCtx := NewContext(ctx, correlationID)
+		// 7. Create a new context with our ID
+		newCtx := goctxid.NewContext(ctx, correlationID)
 
-		// 8. Set the new context back into Fiber
-		c.SetUserContext(newCtx)
+		// 8. Set the new context back into the request
+		c.Request = c.Request.WithContext(newCtx)
 
 		// 9. Continue to the next handler
-		return c.Next()
+		c.Next()
 	}
 }
+

@@ -8,6 +8,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/hiiamtin/goctxid"
+	goctxid_fiber "github.com/hiiamtin/goctxid/adapters/fiber"
 )
 
 var requestCounter uint64
@@ -35,17 +36,17 @@ func main() {
 	app := fiber.New()
 
 	// Example 1: Using custom sequential ID generator
-	app.Use("/api/v1/*", goctxid.New(goctxid.Config{
+	app.Use("/api/v1/*", goctxid_fiber.New(goctxid.Config{
 		Generator: customIDGenerator,
 	}))
 
 	// Example 2: Using prefixed UUID generator
-	app.Use("/api/v2/*", goctxid.New(goctxid.Config{
+	app.Use("/api/v2/*", goctxid_fiber.New(goctxid.Config{
 		Generator: prefixedUUIDGenerator("MYAPP"),
 	}))
 
 	// Example 3: Custom header key
-	app.Use("/api/v3/*", goctxid.New(goctxid.Config{
+	app.Use("/api/v3/*", goctxid_fiber.New(goctxid.Config{
 		HeaderKey: "X-Request-ID", // Different header name
 		Generator: customIDGenerator,
 	}))
@@ -92,4 +93,3 @@ func main() {
 
 	log.Fatal(app.Listen(":3000"))
 }
-
