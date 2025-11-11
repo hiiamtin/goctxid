@@ -4,12 +4,14 @@ This directory contains practical examples demonstrating how to use the goctxid 
 
 ## Examples Overview
 
-| Example | Description | Key Features |
-|---------|-------------|--------------|
-| [basic](./basic) | Simple usage with default configuration (Fiber) | Default middleware setup, accessing correlation IDs |
-| [custom-generator](./custom-generator) | Custom ID generation strategies (Fiber) | Sequential IDs, prefixed UUIDs, custom headers |
-| [logging](./logging) | Integration with logging systems (Fiber) | Structured logging, service layer integration, request tracing |
-| [standard-http](./standard-http) | Using with standard net/http | Framework-agnostic usage, custom middleware |
+| Example | Framework | Description | Key Features |
+|---------|-----------|-------------|--------------|
+| [basic](./basic) | Fiber | Simple usage with default configuration | Default middleware setup, accessing correlation IDs |
+| [echo-basic](./echo-basic) | Echo | Simple usage with Echo framework | Echo middleware, context operations |
+| [gin-basic](./gin-basic) | Gin | Simple usage with Gin framework | Gin middleware, context operations |
+| [standard-http](./standard-http) | net/http | Using with standard library | Framework-agnostic usage, custom middleware |
+| [custom-generator](./custom-generator) | Fiber | Custom ID generation strategies | Sequential IDs, prefixed UUIDs, custom headers |
+| [logging](./logging) | Fiber | Integration with logging systems | Structured logging, service layer integration, request tracing |
 
 ## Running the Examples
 
@@ -26,8 +28,20 @@ go mod download
 ### Run an Example
 
 ```bash
-# Basic example
+# Fiber basic example
 cd examples/basic
+go run main.go
+
+# Echo basic example
+cd examples/echo-basic
+go run main.go
+
+# Gin basic example
+cd examples/gin-basic
+go run main.go
+
+# Standard net/http example
+cd examples/standard-http
 go run main.go
 
 # Custom generator example
@@ -71,7 +85,93 @@ curl http://localhost:3000/
 curl -H "X-Correlation-ID: my-custom-id" http://localhost:3000/
 ```
 
-### 2. Custom Generator
+### 2. Echo Basic Usage
+
+**Location:** `examples/echo-basic/`
+
+Demonstrates using goctxid with Echo framework:
+
+- Echo middleware integration
+- Accessing correlation IDs from Echo context
+- Service layer integration
+- Route parameters with correlation tracking
+
+**Import:**
+
+```go
+import goctxid_echo "github.com/hiiamtin/goctxid/adapters/echo"
+```
+
+**Try it:**
+
+```bash
+cd examples/echo-basic
+go run main.go
+
+# In another terminal:
+curl http://localhost:3000/
+curl -H "X-Correlation-ID: my-custom-id" http://localhost:3000/
+curl http://localhost:3000/user/123
+```
+
+---
+
+### 3. Gin Basic Usage
+
+**Location:** `examples/gin-basic/`
+
+Demonstrates using goctxid with Gin framework:
+
+- Gin middleware integration
+- Accessing correlation IDs from Gin context
+- Service layer integration
+- Route parameters with correlation tracking
+
+**Import:**
+
+```go
+import goctxid_gin "github.com/hiiamtin/goctxid/adapters/gin"
+```
+
+**Try it:**
+
+```bash
+cd examples/gin-basic
+go run main.go
+
+# In another terminal:
+curl http://localhost:3000/
+curl -H "X-Correlation-ID: my-custom-id" http://localhost:3000/
+curl http://localhost:3000/user/123
+```
+
+---
+
+### 4. Standard net/http
+
+**Location:** `examples/standard-http/`
+
+Demonstrates framework-agnostic usage with standard library:
+
+- Custom middleware implementation
+- Using core goctxid functions directly
+- No framework dependencies
+- Works with any router/framework
+
+**Try it:**
+
+```bash
+cd examples/standard-http
+go run main.go
+
+# In another terminal:
+curl http://localhost:3000/
+curl -H "X-Correlation-ID: my-custom-id" http://localhost:3000/
+```
+
+---
+
+### 5. Custom Generator
 
 **Location:** `examples/custom-generator/`
 
@@ -96,7 +196,9 @@ curl http://localhost:3000/api/v3/test  # Custom header
 
 **Important:** Custom generators must be **thread-safe** as they're called concurrently!
 
-### 3. Logging Integration
+---
+
+### 6. Logging Integration
 
 **Location:** `examples/logging/`
 

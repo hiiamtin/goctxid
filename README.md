@@ -76,32 +76,122 @@ app.Use(goctxid_fiber.New(goctxid.Config{
 
 ### Using with Different Frameworks
 
-**Fiber:**
+#### Fiber
 
 ```go
-import goctxid_fiber "github.com/hiiamtin/goctxid/adapters/fiber"
-app.Use(goctxid_fiber.New())
+package main
+
+import (
+    "github.com/gofiber/fiber/v2"
+    "github.com/hiiamtin/goctxid"
+    goctxid_fiber "github.com/hiiamtin/goctxid/adapters/fiber"
+)
+
+func main() {
+    app := fiber.New()
+
+    // Add middleware
+    app.Use(goctxid_fiber.New())
+
+    app.Get("/", func(c *fiber.Ctx) error {
+        correlationID := goctxid.MustFromContext(c.UserContext())
+        return c.SendString("Correlation ID: " + correlationID)
+    })
+
+    app.Listen(":3000")
+}
 ```
 
-**Standard net/http:**
+#### Echo
 
 ```go
-import "github.com/hiiamtin/goctxid"
-// See examples/standard-http/ for complete implementation
+package main
+
+import (
+    "github.com/labstack/echo/v4"
+    "github.com/hiiamtin/goctxid"
+    goctxid_echo "github.com/hiiamtin/goctxid/adapters/echo"
+)
+
+func main() {
+    e := echo.New()
+
+    // Add middleware
+    e.Use(goctxid_echo.New())
+
+    e.GET("/", func(c echo.Context) error {
+        correlationID := goctxid.MustFromContext(c.Request().Context())
+        return c.String(200, "Correlation ID: "+correlationID)
+    })
+
+    e.Start(":3000")
+}
 ```
 
-**Echo:**
+#### Gin
 
 ```go
-import goctxid_echo "github.com/hiiamtin/goctxid/adapters/echo"
-e.Use(goctxid_echo.New())
+package main
+
+import (
+    "github.com/gin-gonic/gin"
+    "github.com/hiiamtin/goctxid"
+    goctxid_gin "github.com/hiiamtin/goctxid/adapters/gin"
+)
+
+func main() {
+    r := gin.Default()
+
+    // Add middleware
+    r.Use(goctxid_gin.New())
+
+    r.GET("/", func(c *gin.Context) {
+        correlationID := goctxid.MustFromContext(c.Request.Context())
+        c.String(200, "Correlation ID: "+correlationID)
+    })
+
+    r.Run(":3000")
+}
 ```
 
-**Gin:**
+#### Standard net/http
 
 ```go
-import goctxid_gin "github.com/hiiamtin/goctxid/adapters/gin"
-r.Use(goctxid_gin.New())
+package main
+
+import (
+    "net/http"
+    "github.com/hiiamtin/goctxid"
+)
+
+func correlationIDMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        // Get or generate correlation ID
+        correlationID := r.Header.Get(goctxid.DefaultHeaderKey)
+        if correlationID == "" {
+            correlationID = goctxid.DefaultGenerator()
+        }
+
+        // Set response header
+        w.Header().Set(goctxid.DefaultHeaderKey, correlationID)
+
+        // Add to context
+        ctx := goctxid.NewContext(r.Context(), correlationID)
+        next.ServeHTTP(w, r.WithContext(ctx))
+    })
+}
+
+func main() {
+    mux := http.NewServeMux()
+
+    mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+        correlationID := goctxid.MustFromContext(r.Context())
+        w.Write([]byte("Correlation ID: " + correlationID))
+    })
+
+    handler := correlationIDMiddleware(mux)
+    http.ListenAndServe(":3000", handler)
+}
 ```
 
 **Other frameworks?** See [adapters/README.md](./adapters/README.md) for a guide on creating your own adapter.
@@ -110,34 +200,56 @@ r.Use(goctxid_gin.New())
 
 Check out the [examples/](./examples) directory for complete, runnable examples:
 
-* **[basic](./examples/basic)** - Simple usage with Fiber
-* **[standard-http](./examples/standard-http)** - Using with standard net/http
-* **[custom-generator](./examples/custom-generator)** - Custom ID generation strategies
-* **[logging](./examples/logging)** - Integration with logging systems and service layers
+| Example | Framework | Description |
+|---------|-----------|-------------|
+| **[basic](./examples/basic)** | Fiber | Simple usage with default configuration |
+| **[standard-http](./examples/standard-http)** | net/http | Framework-agnostic usage with standard library |
+| **[custom-generator](./examples/custom-generator)** | Fiber | Custom ID generation strategies (sequential, prefixed) |
+| **[logging](./examples/logging)** | Fiber | Integration with logging systems and service layers |
+
+### Running Examples
+
+```bash
+# Run any example
+cd examples/basic
+go run main.go
+
+# Test it
+curl http://localhost:3000/
+curl -H "X-Correlation-ID: my-custom-id" http://localhost:3000/
+```
 
 ## 🔧 API Reference
 
 ### Middleware
 
-#### `New(config ...Config) fiber.Handler`
+Each framework adapter provides a `New()` function that creates middleware for that framework:
 
-Creates a new Fiber middleware with optional configuration.
-
-**Parameters:**
-
-* `config` (optional): Configuration options
-
-**Example:**
+#### Fiber: `goctxid_fiber.New(config ...goctxid.Config)`
 
 ```go
-// Default configuration
-app.Use(goctxid.New())
+import goctxid_fiber "github.com/hiiamtin/goctxid/adapters/fiber"
 
-// Custom configuration
-app.Use(goctxid.New(goctxid.Config{
-    HeaderKey: "X-Request-ID",
-    Generator: customGenerator,
-}))
+app.Use(goctxid_fiber.New())
+app.Use(goctxid_fiber.New(goctxid.Config{...}))
+```
+
+#### Echo: `goctxid_echo.New(config ...goctxid.Config)`
+
+```go
+import goctxid_echo "github.com/hiiamtin/goctxid/adapters/echo"
+
+e.Use(goctxid_echo.New())
+e.Use(goctxid_echo.New(goctxid.Config{...}))
+```
+
+#### Gin: `goctxid_gin.New(config ...goctxid.Config)`
+
+```go
+import goctxid_gin "github.com/hiiamtin/goctxid/adapters/gin"
+
+r.Use(goctxid_gin.New())
+r.Use(goctxid_gin.New(goctxid.Config{...}))
 ```
 
 ### Configuration
@@ -155,6 +267,23 @@ type Config struct {
     // Default: UUID v4
     Generator func() string
 }
+```
+
+**Custom Configuration Example (works with all adapters):**
+
+```go
+import (
+    "github.com/hiiamtin/goctxid"
+    goctxid_fiber "github.com/hiiamtin/goctxid/adapters/fiber"
+)
+
+// Custom configuration
+app.Use(goctxid_fiber.New(goctxid.Config{
+    HeaderKey: "X-Request-ID",  // Use different header
+    Generator: func() string {   // Custom ID generator
+        return "REQ-" + uuid.NewString()
+    },
+}))
 ```
 
 ### Context Operations
@@ -285,7 +414,9 @@ MIT License - see LICENSE file for details
 
 ## 🙏 Acknowledgments
 
-Built with:
+Built with support for:
 
 * [Fiber](https://gofiber.io/) - Express-inspired web framework
+* [Echo](https://echo.labstack.com/) - High performance, minimalist Go web framework
+* [Gin](https://gin-gonic.com/) - HTTP web framework written in Go
 * [google/uuid](https://github.com/google/uuid) - UUID generation

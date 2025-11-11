@@ -18,10 +18,14 @@ goctxid/
     ├── README.md           # Examples documentation
     ├── basic/              # Basic Fiber usage example
     │   └── main.go
+    ├── echo-basic/         # Basic Echo usage example
+    │   └── main.go
+    ├── gin-basic/          # Basic Gin usage example
+    │   └── main.go
+    ├── standard-http/      # Standard net/http example
+    │   └── main.go
     ├── custom-generator/   # Custom ID generator examples (Fiber)
     │   └── main.go
-    ├── logging/            # Logging integration example (Fiber)
-    │   └── main.go
-    └── standard-http/      # Standard net/http example
+    └── logging/            # Logging integration example (Fiber)
         └── main.go
 
