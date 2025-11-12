@@ -481,7 +481,7 @@ func BenchmarkBaseline(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		resp, _ := app.Test(req)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}
 }
 
@@ -498,7 +498,7 @@ func BenchmarkMiddleware(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		resp, _ := app.Test(req)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}
 }
 
@@ -516,7 +516,7 @@ func BenchmarkMiddlewareWithExistingID(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		resp, _ := app.Test(req)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}
 }
 
