@@ -1,6 +1,8 @@
 package gin
 
 import (
+	"context"
+
 	"github.com/gin-gonic/gin"
 	"github.com/hiiamtin/goctxid"
 )
@@ -74,4 +76,40 @@ func New(config ...Config) gin.HandlerFunc {
 		// 10. Continue to the next handler
 		c.Next()
 	}
+}
+
+// Re-exported constants from goctxid package for convenience
+const (
+	// DefaultHeaderKey is the default HTTP header key for correlation ID
+	DefaultHeaderKey = goctxid.DefaultHeaderKey
+)
+
+// Re-exported generator functions from goctxid package for convenience
+var (
+	// DefaultGenerator is the default UUID v4 generator (cryptographically secure)
+	DefaultGenerator = goctxid.DefaultGenerator
+
+	// FastGenerator is a high-performance generator using atomic counter
+	// ⚠️ WARNING: Exposes request count. Use only when performance is critical.
+	FastGenerator = goctxid.FastGenerator
+)
+
+// Re-exported functions from goctxid package for convenience
+// This allows users to call goctxid_gin.FromContext() instead of importing goctxid separately
+
+// FromContext retrieves the correlation ID from the context.
+// Returns the correlation ID and a boolean indicating if it was found.
+func FromContext(ctx context.Context) (string, bool) {
+	return goctxid.FromContext(ctx)
+}
+
+// MustFromContext retrieves the correlation ID from the context.
+// Returns the correlation ID or an empty string if not found.
+func MustFromContext(ctx context.Context) string {
+	return goctxid.MustFromContext(ctx)
+}
+
+// NewContext creates a new context with the correlation ID.
+func NewContext(ctx context.Context, correlationID string) context.Context {
+	return goctxid.NewContext(ctx, correlationID)
 }

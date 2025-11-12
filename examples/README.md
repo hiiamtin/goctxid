@@ -7,6 +7,7 @@ This directory contains practical examples demonstrating how to use the goctxid 
 | Example | Framework | Description | Key Features |
 |---------|-----------|-------------|--------------|
 | [basic](./basic) | Fiber | Simple usage with default configuration (context-based) | Default middleware setup, accessing correlation IDs |
+| [re-exported-api](./re-exported-api) | Fiber | Using re-exported functions | No need to import goctxid package, cleaner imports |
 | [advanced-features](./advanced-features) | Fiber | Advanced performance optimizations | Next function, FastGenerator, custom LocalsKey |
 | [fiber-native](./fiber-native) | Fiber | Fiber-native approach using c.Locals() | Better performance, Fiber-native storage, FromLocals() API |
 | [echo-basic](./echo-basic) | Echo | Simple usage with Echo framework | Echo middleware, context operations |
@@ -93,7 +94,58 @@ curl -H "X-Correlation-ID: my-custom-id" http://localhost:3000/
 
 ---
 
-### 2. Advanced Features (Performance Optimizations)
+### 2. Re-Exported API (Cleaner Imports)
+
+**Location:** `examples/re-exported-api/`
+
+Demonstrates using re-exported functions from adapters without importing the base `goctxid` package:
+
+- **No need to import** `github.com/hiiamtin/goctxid`
+- Use `goctxid_fiber.FromContext()` directly
+- Use `goctxid_fiber.DefaultGenerator` and `goctxid_fiber.FastGenerator`
+- Use `goctxid_fiber.DefaultHeaderKey` constant
+- Cleaner imports and simpler code
+
+**Key Benefit:**
+
+```go
+// ❌ OLD WAY: Need to import both packages
+import (
+    "github.com/hiiamtin/goctxid"
+    goctxid_fiber "github.com/hiiamtin/goctxid/adapters/fiber"
+)
+correlationID := goctxid.MustFromContext(c.UserContext())
+
+// ✅ NEW WAY: Only import the adapter
+import (
+    goctxid_fiber "github.com/hiiamtin/goctxid/adapters/fiber"
+)
+correlationID := goctxid_fiber.MustFromContext(c.UserContext())
+```
+
+**Try it:**
+
+```bash
+cd examples/re-exported-api
+go run main.go
+
+# In another terminal:
+curl http://localhost:3000/api/user/123
+curl http://localhost:3000/api/config
+curl http://localhost:3000/api/custom-id
+```
+
+**Available in all adapters:**
+
+- `goctxid_fiber.FromContext()`, `MustFromContext()`, `NewContext()`
+- `goctxid_echo.FromContext()`, `MustFromContext()`, `NewContext()`
+- `goctxid_gin.FromContext()`, `MustFromContext()`, `NewContext()`
+- `goctxid_fibernative.FromContext()`, `MustFromContext()`, `NewContext()`
+- Plus: `DefaultHeaderKey`, `DefaultGenerator`, `FastGenerator`
+
+---
+
+### 3. Advanced Features (Performance Optimizations)
 
 **Location:** `examples/advanced-features/`
 

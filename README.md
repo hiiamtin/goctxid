@@ -39,7 +39,6 @@ package main
 import (
     "log"
     "github.com/gofiber/fiber/v2"
-    "github.com/hiiamtin/goctxid"
     goctxid_fiber "github.com/hiiamtin/goctxid/adapters/fiber"
 )
 
@@ -50,8 +49,9 @@ func main() {
     app.Use(goctxid_fiber.New())
 
     app.Get("/", func(c *fiber.Ctx) error {
-        // Get correlation ID from context
-        correlationID, _ := goctxid.FromContext(c.UserContext())
+        // ✨ No need to import goctxid package!
+        // Use re-exported function directly from adapter
+        correlationID := goctxid_fiber.MustFromContext(c.UserContext())
 
         return c.JSON(fiber.Map{
             "message": "Hello, World!",
@@ -62,6 +62,8 @@ func main() {
     log.Fatal(app.Listen(":3000"))
 }
 ```
+
+**💡 Pro Tip:** All adapters re-export common functions (`FromContext`, `MustFromContext`, `NewContext`) and constants (`DefaultHeaderKey`), so you don't need to import the base `goctxid` package separately!
 
 ### Custom Configuration
 
@@ -301,6 +303,7 @@ Check out the [examples/](./examples) directory for complete, runnable examples:
 | Example | Framework | Description |
 |---------|-----------|-------------|
 | **[basic](./examples/basic)** | Fiber | Simple usage with default configuration (context-based) |
+| **[re-exported-api](./examples/re-exported-api)** | Fiber | Using re-exported functions (no need to import goctxid) |
 | **[advanced-features](./examples/advanced-features)** | Fiber | Next function, FastGenerator, and custom LocalsKey |
 | **[fiber-native](./examples/fiber-native)** | Fiber | Fiber-native approach using c.Locals() (better performance) |
 | **[standard-http](./examples/standard-http)** | net/http | Framework-agnostic usage with standard library |

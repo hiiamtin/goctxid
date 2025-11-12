@@ -615,3 +615,58 @@ func TestConcurrentRequestsWithGoroutines(t *testing.T) {
 	// Uncomment to debug:
 	// t.Logf("✅ Test passed! All %d requests had unique IDs and goroutines captured correct values", numRequests)
 }
+
+// TestReExportedFunctions tests that re-exported functions work correctly
+// This allows users to use goctxid_gin.FromContext() instead of importing goctxid
+func TestReExportedFunctions(t *testing.T) {
+	ctx := context.Background()
+
+	// Test NewContext
+	testID := "test-correlation-id-123"
+	newCtx := NewContext(ctx, testID)
+
+	// Test FromContext
+	retrievedID, exists := FromContext(newCtx)
+	if !exists {
+		t.Error("FromContext should return true for existing ID")
+	}
+	if retrievedID != testID {
+		t.Errorf("FromContext returned wrong ID: got %s, want %s", retrievedID, testID)
+	}
+
+	// Test MustFromContext
+	mustID := MustFromContext(newCtx)
+	if mustID != testID {
+		t.Errorf("MustFromContext returned wrong ID: got %s, want %s", mustID, testID)
+	}
+
+	// Test MustFromContext with empty context
+	emptyID := MustFromContext(ctx)
+	if emptyID != "" {
+		t.Errorf("MustFromContext should return empty string for context without ID, got %s", emptyID)
+	}
+
+	// Test re-exported constants
+	if DefaultHeaderKey != "X-Correlation-ID" {
+		t.Errorf("DefaultHeaderKey should be X-Correlation-ID, got %s", DefaultHeaderKey)
+	}
+
+	// Test re-exported generators
+	if DefaultGenerator == nil {
+		t.Error("DefaultGenerator should not be nil")
+	}
+	if FastGenerator == nil {
+		t.Error("FastGenerator should not be nil")
+	}
+
+	// Test that generators actually work
+	id1 := DefaultGenerator()
+	if id1 == "" {
+		t.Error("DefaultGenerator should return non-empty ID")
+	}
+
+	id2 := FastGenerator()
+	if id2 == "" {
+		t.Error("FastGenerator should return non-empty ID")
+	}
+}
