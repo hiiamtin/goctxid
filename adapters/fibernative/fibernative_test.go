@@ -536,7 +536,7 @@ func BenchmarkMiddlewareWithLocalsAccess(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		resp, _ := app.Test(req)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}
 }
 
@@ -578,7 +578,7 @@ func TestGoroutineSafety(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Request failed: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// Wait for goroutine to complete
 	wg.Wait()
@@ -632,7 +632,7 @@ func TestGoroutineUnsafe(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Request failed: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	wg.Wait()
 
@@ -733,7 +733,7 @@ func TestConcurrentRequestsWithGoroutinesCopyValue(t *testing.T) {
 				t.Errorf("Request %d failed: %v", requestNum, err)
 				return
 			}
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 		}(i)
 	}
 
@@ -834,7 +834,7 @@ func TestConcurrentRequestsWithGoroutinesUnsafe(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Request %d failed: %v", i, err)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}
 
 	// Wait for all goroutines to complete

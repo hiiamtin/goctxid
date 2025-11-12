@@ -111,7 +111,7 @@ func TestNew(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Request failed: %v", err)
 			}
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			// Check response header
 			responseID := resp.Header.Get(tt.checkResponseKey)
@@ -232,7 +232,7 @@ func TestMiddlewareChaining(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Request failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if firstHandlerID == "" || secondHandlerID == "" {
 		t.Error("Correlation ID not propagated through middleware chain")
@@ -278,7 +278,7 @@ func TestConcurrentRequests(t *testing.T) {
 				t.Errorf("Request failed: %v", err)
 				return
 			}
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			body, _ := io.ReadAll(resp.Body)
 			responseID := string(body)
@@ -333,7 +333,7 @@ func TestGeneratorThreadSafety(t *testing.T) {
 				t.Errorf("Request failed: %v", err)
 				return
 			}
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		}()
 	}
 
@@ -360,7 +360,7 @@ func BenchmarkBaseline(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		resp, _ := app.Test(req)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}
 }
 
@@ -377,7 +377,7 @@ func BenchmarkMiddleware(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		resp, _ := app.Test(req)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}
 }
 
@@ -395,7 +395,7 @@ func BenchmarkMiddlewareWithExistingID(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		resp, _ := app.Test(req)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}
 }
 
@@ -415,7 +415,7 @@ func BenchmarkMiddlewareWithContextAccess(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		resp, _ := app.Test(req)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}
 }
 
@@ -459,7 +459,7 @@ func TestGoroutineSafety(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Request failed: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// Wait for goroutine to complete
 	wg.Wait()
@@ -513,7 +513,7 @@ func TestMultipleGoroutines(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Request failed: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	wg.Wait()
 
@@ -624,7 +624,7 @@ func TestConcurrentRequestsWithGoroutines(t *testing.T) {
 				t.Errorf("Request %d failed: %v", requestNum, err)
 				return
 			}
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 		}(i)
 	}
 
@@ -736,7 +736,7 @@ func TestNext(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to send request: %v", err)
 			}
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			// Check if ID was set in context
 			if tt.shouldHaveID {
