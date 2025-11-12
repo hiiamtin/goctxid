@@ -636,6 +636,9 @@ func TestConcurrentRequestsWithGoroutinesCopyValue(t *testing.T) {
 		// Copy the correlation ID before spawning goroutine
 		correlationID := MustFromLocals(c)
 
+		// Uncomment to debug:
+		// t.Logf("Handler: correlationID = %s", correlationID)
+
 		handlerWg.Add(1)
 		go func(copiedID string) {
 			defer handlerWg.Done()
@@ -643,6 +646,9 @@ func TestConcurrentRequestsWithGoroutinesCopyValue(t *testing.T) {
 			time.Sleep(50 * time.Millisecond)
 
 			// Use the copied value - this is safe
+			// Uncomment to debug:
+			// t.Logf("Goroutine: copiedID = %s", copiedID)
+
 			resultsMu.Lock()
 			results = append(results, result{
 				requestID:  copiedID,
@@ -718,6 +724,12 @@ func TestConcurrentRequestsWithGoroutinesCopyValue(t *testing.T) {
 		t.Fatalf("Expected %d results, got %d", numRequests, len(results))
 	}
 
+	// Uncomment to debug:
+	// t.Logf("=== Results ===")
+	// for i, r := range results {
+	// 	t.Logf("[%d] requestID: %s, capturedID: %s", i, r.requestID, r.capturedID)
+	// }
+
 	// Check that no IDs got mixed up
 	for _, r := range results {
 		if r.requestID != r.capturedID {
@@ -738,6 +750,9 @@ func TestConcurrentRequestsWithGoroutinesCopyValue(t *testing.T) {
 	if len(seenIDs) != numRequests {
 		t.Errorf("Expected %d unique IDs, got %d - Values got mixed up!", numRequests, len(seenIDs))
 	}
+
+	// Uncomment to debug:
+	// t.Logf("✅ Test passed! All %d requests had unique IDs and goroutines captured correct values", numRequests)
 }
 
 // TestConcurrentRequestsWithGoroutinesUnsafe demonstrates the WRONG way

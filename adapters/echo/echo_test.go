@@ -522,6 +522,9 @@ func TestConcurrentRequestsWithGoroutines(t *testing.T) {
 		ctx := c.Request().Context()
 		requestID := goctxid.MustFromContext(ctx)
 
+		// Uncomment to debug:
+		// t.Logf("Handler: requestID = %s, ctx = %p", requestID, ctx)
+
 		wg.Add(1)
 		go func(capturedCtx context.Context, expectedID string) {
 			defer wg.Done()
@@ -530,6 +533,9 @@ func TestConcurrentRequestsWithGoroutines(t *testing.T) {
 
 			// Access ID from goroutine - should still be the correct ID
 			capturedID := goctxid.MustFromContext(capturedCtx)
+
+			// Uncomment to debug:
+			// t.Logf("Goroutine: expectedID = %s, capturedID = %s, ctx = %p", expectedID, capturedID, capturedCtx)
 
 			mu.Lock()
 			results = append(results, result{
@@ -570,6 +576,12 @@ func TestConcurrentRequestsWithGoroutines(t *testing.T) {
 		t.Fatalf("Expected %d results, got %d", numRequests, len(results))
 	}
 
+	// Uncomment to debug:
+	// t.Logf("=== Results ===")
+	// for i, r := range results {
+	// 	t.Logf("[%d] requestID: %s, capturedID: %s", i, r.requestID, r.capturedID)
+	// }
+
 	// Check that no IDs got mixed up
 	for _, r := range results {
 		if r.requestID != r.capturedID {
@@ -582,12 +594,15 @@ func TestConcurrentRequestsWithGoroutines(t *testing.T) {
 	seenIDs := make(map[string]bool)
 	for _, r := range results {
 		if seenIDs[r.requestID] {
-			t.Errorf("Duplicate ID found: %s", r.requestID)
+			t.Errorf("Duplicate ID found: %s - This means contexts got mixed up!", r.requestID)
 		}
 		seenIDs[r.requestID] = true
 	}
 
 	if len(seenIDs) != numRequests {
-		t.Errorf("Expected %d unique IDs, got %d", numRequests, len(seenIDs))
+		t.Errorf("Expected %d unique IDs, got %d - Contexts got mixed up!", numRequests, len(seenIDs))
 	}
+
+	// Uncomment to debug:
+	// t.Logf("✅ Test passed! All %d requests had unique IDs and goroutines captured correct values", numRequests)
 }
