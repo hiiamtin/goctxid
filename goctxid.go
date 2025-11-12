@@ -4,9 +4,9 @@ package goctxid
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/binary"
 	"fmt"
-	"math/rand"
 	"sync"
 	"sync/atomic"
 
@@ -51,8 +51,8 @@ var (
 
 // initFastGenerator initializes the fast generator with random seed
 func initFastGenerator() {
-	// Read random bytes for the seed
-	rand.Read(fastGenSeed[:])
+	// Read random bytes for the seed using crypto/rand for security
+	_, _ = rand.Read(fastGenSeed[:])
 	// Initialize counter with first 8 bytes of seed
 	fastGenCounter = binary.LittleEndian.Uint64(fastGenSeed[:8])
 }

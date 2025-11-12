@@ -581,7 +581,7 @@ func TestConcurrentRequestsWithGoroutines(t *testing.T) {
 		t.Fatalf("Failed to find available port: %v", err)
 	}
 	port := listener.Addr().(*net.TCPAddr).Port
-	listener.Close()
+	_ = listener.Close()
 
 	// Start a real HTTP server in a goroutine
 	addr := fmt.Sprintf("127.0.0.1:%d", port)

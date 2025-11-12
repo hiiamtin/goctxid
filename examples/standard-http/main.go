@@ -34,7 +34,8 @@ func correlationIDMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// Custom middleware with configuration
+// Custom middleware with configuration (example - not used in this demo)
+// nolint:unused
 func correlationIDMiddlewareWithConfig(config goctxid.Config) func(http.Handler) http.Handler {
 	// Set defaults
 	if config.HeaderKey == "" {
@@ -75,7 +76,7 @@ func helloHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // Example handler with logging
@@ -95,7 +96,7 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // Simulated service function

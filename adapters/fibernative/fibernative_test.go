@@ -110,7 +110,7 @@ func TestNew(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Request failed: %v", err)
 			}
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			// Check response header
 			responseID := resp.Header.Get(tt.checkResponseKey)
@@ -198,7 +198,7 @@ func TestFromLocals(t *testing.T) {
 
 			req := httptest.NewRequest("GET", "/test", nil)
 			resp, _ := app.Test(req)
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		})
 	}
 }
@@ -243,7 +243,7 @@ func TestMustFromLocals(t *testing.T) {
 
 			req := httptest.NewRequest("GET", "/test", nil)
 			resp, _ := app.Test(req)
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		})
 	}
 }
@@ -690,7 +690,7 @@ func TestConcurrentRequestsWithGoroutinesCopyValue(t *testing.T) {
 		t.Fatalf("Failed to find available port: %v", err)
 	}
 	port := listener.Addr().(*net.TCPAddr).Port
-	listener.Close()
+	_ = listener.Close()
 
 	// Start a real HTTP server in a goroutine
 	addr := fmt.Sprintf("127.0.0.1:%d", port)
