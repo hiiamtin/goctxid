@@ -7,11 +7,11 @@ This directory contains practical examples demonstrating how to use the goctxid 
 | Example | Framework | Description | Key Features |
 |---------|-----------|-------------|--------------|
 | [basic](./basic) | Fiber | Simple usage with default configuration (context-based) | Default middleware setup, accessing correlation IDs |
-| [re-exported-api](./re-exported-api) | Fiber | Using re-exported functions | No need to import goctxid package, cleaner imports |
+| [re-exported-api](./re-exported-api) | Fiber | Using re-exported functions | No need to import goctxid package, cleaner imports, GetCorrelationID() |
 | [advanced-features](./advanced-features) | Fiber | Advanced performance optimizations | Next function, FastGenerator, custom LocalsKey |
-| [fiber-native](./fiber-native) | Fiber | Fiber-native approach using c.Locals() | Better performance, Fiber-native storage, FromLocals() API |
-| [echo-basic](./echo-basic) | Echo | Simple usage with Echo framework | Echo middleware, context operations |
-| [gin-basic](./gin-basic) | Gin | Simple usage with Gin framework | Gin middleware, context operations |
+| [fiber-native](./fiber-native) | Fiber | Fiber-native approach using c.Locals() | Better performance, Fiber-native storage, MustFromLocals() API |
+| [echo-basic](./echo-basic) | Echo | Simple usage with Echo framework | Echo middleware, GetCorrelationID() convenience function |
+| [gin-basic](./gin-basic) | Gin | Simple usage with Gin framework | Gin middleware, GetCorrelationID() convenience function |
 | [standard-http](./standard-http) | net/http | Using with standard library | Framework-agnostic usage, custom middleware |
 | [custom-generator](./custom-generator) | Fiber | Custom ID generation strategies | Sequential IDs, prefixed UUIDs, custom headers |
 | [logging](./logging) | Fiber | Integration with logging systems | Structured logging, service layer integration, request tracing |

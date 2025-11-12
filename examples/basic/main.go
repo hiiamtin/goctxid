@@ -14,13 +14,10 @@ func main() {
 	// Add goctxid middleware
 	app.Use(goctxid_fiber.New())
 
-	// Example route
+	// Example route - using convenience function
 	app.Get("/", func(c *fiber.Ctx) error {
-		// Get correlation ID from context
-		correlationID, exists := goctxid.FromContext(c.UserContext())
-		if !exists {
-			return c.Status(500).SendString("Correlation ID not found")
-		}
+		// Get correlation ID using the convenience function
+		correlationID := goctxid_fiber.GetCorrelationID(c)
 
 		return c.JSON(fiber.Map{
 			"message":        "Hello, World!",
@@ -28,9 +25,10 @@ func main() {
 		})
 	})
 
-	// Example route with logging
+	// Example route with logging - alternative method
 	app.Get("/user/:id", func(c *fiber.Ctx) error {
-		correlationID, _ := goctxid.FromContext(c.UserContext())
+		// Alternative: Get from context directly
+		correlationID := goctxid.MustFromContext(c.UserContext())
 		userID := c.Params("id")
 
 		// Use correlation ID in logs

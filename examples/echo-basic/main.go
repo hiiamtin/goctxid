@@ -15,21 +15,21 @@ func main() {
 	// Add goctxid middleware
 	e.Use(goctxid_echo.New())
 
-	// Basic route
+	// Basic route - using convenience function
 	e.GET("/", func(c echo.Context) error {
-		// Get correlation ID from context
-		correlationID, exists := goctxid.FromContext(c.Request().Context())
+		// Get correlation ID using the convenience function
+		correlationID := goctxid_echo.GetCorrelationID(c)
 
 		return c.JSON(200, map[string]interface{}{
 			"message":        "Hello from Echo!",
 			"correlation_id": correlationID,
-			"id_exists":      exists,
 		})
 	})
 
-	// Route with custom header
+	// Route with custom header - alternative method
 	e.GET("/custom", func(c echo.Context) error {
-		correlationID := goctxid.MustFromContext(c.Request().Context())
+		// Alternative: Get from context directly
+		correlationID := goctxid_echo.MustFromContext(c.Request().Context())
 
 		return c.JSON(200, map[string]string{
 			"message":        "Custom route",

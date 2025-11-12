@@ -45,9 +45,18 @@ import goctxid_fiber "github.com/hiiamtin/goctxid/adapters/fiber"
 app := fiber.New()
 app.Use(goctxid_fiber.New())
 
-// Access ID from context
+// Access ID using convenience function (recommended)
+correlationID := goctxid_fiber.GetCorrelationID(c)
+
+// Or access from context directly
 correlationID := goctxid.MustFromContext(c.UserContext())
 ```
+
+**API:**
+
+- `GetCorrelationID(c *fiber.Ctx) string` - Convenience function (recommended)
+- `FromContext(ctx context.Context) (string, bool)` - Get with existence check
+- `MustFromContext(ctx context.Context) string` - Get or empty string
 
 **Location:** `adapters/fiber/`
 
@@ -170,7 +179,19 @@ import goctxid_echo "github.com/hiiamtin/goctxid/adapters/echo"
 ```go
 e := echo.New()
 e.Use(goctxid_echo.New())
+
+// Access ID using convenience function (recommended)
+correlationID := goctxid_echo.GetCorrelationID(c)
+
+// Or access from context directly
+correlationID := goctxid.MustFromContext(c.Request().Context())
 ```
+
+**API:**
+
+- `GetCorrelationID(c echo.Context) string` - Convenience function (recommended)
+- `FromContext(ctx context.Context) (string, bool)` - Get with existence check
+- `MustFromContext(ctx context.Context) string` - Get or empty string
 
 **Location:** `adapters/echo/`
 
@@ -189,7 +210,19 @@ import goctxid_gin "github.com/hiiamtin/goctxid/adapters/gin"
 ```go
 r := gin.Default()
 r.Use(goctxid_gin.New())
+
+// Access ID using convenience function (recommended)
+correlationID := goctxid_gin.GetCorrelationID(c)
+
+// Or access from context directly
+correlationID := goctxid.MustFromContext(c.Request.Context())
 ```
+
+**API:**
+
+- `GetCorrelationID(c *gin.Context) string` - Convenience function (recommended)
+- `FromContext(ctx context.Context) (string, bool)` - Get with existence check
+- `MustFromContext(ctx context.Context) string` - Get or empty string
 
 **Location:** `adapters/gin/`
 

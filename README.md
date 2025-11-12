@@ -503,7 +503,57 @@ app.Use(goctxid_fiber.New(goctxid_fiber.Config{
 }))
 ```
 
-### Context Operations
+### Retrieving Correlation IDs
+
+#### Convenience Functions (Recommended)
+
+Each context-based adapter provides a `GetCorrelationID` convenience function:
+
+**Fiber:**
+
+```go
+import goctxid_fiber "github.com/hiiamtin/goctxid/adapters/fiber"
+
+app.Get("/", func(c *fiber.Ctx) error {
+    correlationID := goctxid_fiber.GetCorrelationID(c)
+    return c.SendString(correlationID)
+})
+```
+
+**Echo:**
+
+```go
+import goctxid_echo "github.com/hiiamtin/goctxid/adapters/echo"
+
+e.GET("/", func(c echo.Context) error {
+    correlationID := goctxid_echo.GetCorrelationID(c)
+    return c.String(http.StatusOK, correlationID)
+})
+```
+
+**Gin:**
+
+```go
+import goctxid_gin "github.com/hiiamtin/goctxid/adapters/gin"
+
+r.GET("/", func(c *gin.Context) {
+    correlationID := goctxid_gin.GetCorrelationID(c)
+    c.JSON(http.StatusOK, gin.H{"id": correlationID})
+})
+```
+
+**Fibernative (uses c.Locals()):**
+
+```go
+import goctxid_fibernative "github.com/hiiamtin/goctxid/adapters/fibernative"
+
+app.Get("/", func(c *fiber.Ctx) error {
+    correlationID := goctxid_fibernative.MustFromLocals(c)
+    return c.SendString(correlationID)
+})
+```
+
+#### Context Operations
 
 #### `FromContext(ctx context.Context) (string, bool)`
 
@@ -632,16 +682,57 @@ See [BENCHMARKS.md](./BENCHMARKS.md) for detailed performance analysis.
 
 ```bash
 # Run all tests
-go test -v
+go test ./... -v
 
 # Run tests with coverage
-go test -cover
+go test ./... -cover
 
 # Run benchmarks
-go test -bench=. -benchmem
+go test ./... -bench=. -benchmem
+
+# Or use Makefile
+make test
+make test-coverage
+make bench
 ```
 
-**Test Coverage:** 100%
+**Test Coverage:** 100% (core package), 81-92% (adapters)
+
+## 🛠️ Development
+
+### Code Generation
+
+This project uses code generation to eliminate duplication in adapter re-exports:
+
+```bash
+# Generate re-export code for all adapters
+make generate-reexports
+
+# Or manually for a specific adapter
+go run tools/generate_reexports.go fiber > adapters/fiber/reexports_generated.go
+```
+
+**Why code generation?**
+
+* ✅ Single source of truth for re-export code
+* ✅ Ensures consistency across all adapters
+* ✅ Easy to maintain and update
+* ✅ Zero runtime overhead
+
+See [tools/README.md](./tools/README.md) for more details.
+
+### Available Make Targets
+
+```bash
+make help                 # Show all available targets
+make generate-reexports   # Generate re-export code
+make test                 # Run all tests
+make test-coverage        # Run tests with coverage
+make bench                # Run benchmarks
+make fmt                  # Format code
+make vet                  # Run go vet
+make check                # Run fmt, vet, and tests
+```
 
 ## 📚 Documentation
 
