@@ -7,6 +7,7 @@ This directory contains practical examples demonstrating how to use the goctxid 
 | Example | Framework | Description | Key Features |
 |---------|-----------|-------------|--------------|
 | [basic](./basic) | Fiber | Simple usage with default configuration (context-based) | Default middleware setup, accessing correlation IDs |
+| [advanced-features](./advanced-features) | Fiber | Advanced performance optimizations | Next function, FastGenerator, custom LocalsKey |
 | [fiber-native](./fiber-native) | Fiber | Fiber-native approach using c.Locals() | Better performance, Fiber-native storage, FromLocals() API |
 | [echo-basic](./echo-basic) | Echo | Simple usage with Echo framework | Echo middleware, context operations |
 | [gin-basic](./gin-basic) | Gin | Simple usage with Gin framework | Gin middleware, context operations |
@@ -92,7 +93,70 @@ curl -H "X-Correlation-ID: my-custom-id" http://localhost:3000/
 
 ---
 
-### 2. Fiber Native (c.Locals() - Better Performance)
+### 2. Advanced Features (Performance Optimizations)
+
+**Location:** `examples/advanced-features/`
+
+Demonstrates advanced performance optimization features:
+
+- **Next Function**: Skip middleware for specific requests (health checks, metrics)
+- **FastGenerator**: High-performance ID generation (~33% faster)
+- **Custom LocalsKey**: Prevent collisions in fibernative adapter
+- **Combined Optimizations**: Using multiple features together
+
+**Key Features:**
+
+```go
+// Skip middleware for health checks (~400-500 ns saved)
+app.Use(goctxid_fiber.New(goctxid_fiber.Config{
+    Next: func(c *fiber.Ctx) bool {
+        return c.Path() == "/health" || c.Path() == "/metrics"
+    },
+}))
+
+// Use FastGenerator for high-throughput (~115 ns saved per ID)
+app.Use(goctxid_fiber.New(goctxid_fiber.Config{
+    Config: goctxid.Config{
+        Generator: goctxid.FastGenerator,
+    },
+}))
+
+// Custom LocalsKey in fibernative
+app.Use(fibernative.New(fibernative.Config{
+    LocalsKey: "my_correlation_id",
+}))
+```
+
+**Try it:**
+
+```bash
+cd examples/advanced-features
+go run main.go
+
+# In another terminal:
+curl http://localhost:3000/api/health        # Middleware skipped
+curl http://localhost:3000/api/users         # UUID v4 (secure)
+curl http://localhost:3000/api/fast/data     # FastGenerator (fast)
+curl http://localhost:3000/api/native/info   # Custom LocalsKey
+```
+
+**⚠️ FastGenerator Privacy Warning:**
+
+FastGenerator uses an atomic counter and **exposes your request count**. Use only when:
+
+- Performance is critical (high-throughput systems)
+- Request count exposure is acceptable
+- IDs are used only for internal tracing (not exposed to clients)
+
+**Performance Gains:**
+
+- Next function: ~400-500 ns saved per skipped request
+- FastGenerator: ~115 ns saved per ID (single-threaded), ~582 ns (parallel)
+- Combined: Up to ~500-1000 ns per request
+
+---
+
+### 3. Fiber Native (c.Locals() - Better Performance)
 
 **Location:** `examples/fiber-native/`
 

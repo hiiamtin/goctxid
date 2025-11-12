@@ -66,13 +66,79 @@ func main() {
 ### Custom Configuration
 
 ```go
-app.Use(goctxid_fiber.New(goctxid.Config{
-    HeaderKey: "X-Request-ID",  // Custom header name
-    Generator: func() string {   // Custom ID generator
-        return "REQ-" + uuid.NewString()
+app.Use(goctxid_fiber.New(goctxid_fiber.Config{
+    Config: goctxid.Config{
+        HeaderKey: "X-Request-ID",  // Custom header name
+        Generator: func() string {   // Custom ID generator
+            return "REQ-" + uuid.NewString()
+        },
     },
 }))
 ```
+
+## ⚡ Advanced Features
+
+### Skip Middleware for Specific Requests (Next Function)
+
+Save ~400-500 ns per request by skipping middleware for health checks, metrics, or static files:
+
+```go
+app.Use(goctxid_fiber.New(goctxid_fiber.Config{
+    Next: func(c *fiber.Ctx) bool {
+        // Skip middleware for these paths
+        path := c.Path()
+        return path == "/health" || path == "/metrics"
+    },
+}))
+```
+
+**Available for all adapters:**
+
+* **Fiber**: `Next func(c *fiber.Ctx) bool`
+* **Echo**: `Next func(c echo.Context) bool`
+* **Gin**: `Next func(c *gin.Context) bool`
+
+### High-Performance ID Generation (FastGenerator)
+
+For high-throughput systems, use `FastGenerator` for ~33% faster ID generation:
+
+```go
+app.Use(goctxid_fiber.New(goctxid_fiber.Config{
+    Config: goctxid.Config{
+        Generator: goctxid.FastGenerator,  // Fast but exposes request count
+    },
+}))
+```
+
+**⚠️ Privacy Warning:** `FastGenerator` uses an atomic counter and **exposes your request count**. Use only when:
+
+* Performance is critical (high-throughput systems)
+* Request count exposure is acceptable
+* IDs are used only for internal tracing (not exposed to clients)
+
+**Performance Comparison:**
+
+```text
+FastGenerator:    234 ns/op (single-threaded), 149 ns/op (parallel)
+DefaultGenerator: 349 ns/op (single-threaded), 731 ns/op (parallel)
+```
+
+For most applications, use `DefaultGenerator` (UUID v4) for better privacy/security.
+
+### Custom LocalsKey (Fiber Native Only)
+
+Prevent collisions when using `fibernative` adapter:
+
+```go
+app.Use(fibernative.New(fibernative.Config{
+    LocalsKey: "my_correlation_id",  // Custom key to avoid collisions
+}))
+
+// Retrieve with custom key
+id := fibernative.MustFromLocalsWithKey(c, "my_correlation_id")
+```
+
+See [examples/advanced-features](./examples/advanced-features) for complete examples.
 
 ## 🔌 Framework Support
 
@@ -235,6 +301,7 @@ Check out the [examples/](./examples) directory for complete, runnable examples:
 | Example | Framework | Description |
 |---------|-----------|-------------|
 | **[basic](./examples/basic)** | Fiber | Simple usage with default configuration (context-based) |
+| **[advanced-features](./examples/advanced-features)** | Fiber | Next function, FastGenerator, and custom LocalsKey |
 | **[fiber-native](./examples/fiber-native)** | Fiber | Fiber-native approach using c.Locals() (better performance) |
 | **[standard-http](./examples/standard-http)** | net/http | Framework-agnostic usage with standard library |
 | **[custom-generator](./examples/custom-generator)** | Fiber | Custom ID generation strategies (sequential, prefixed) |
@@ -258,48 +325,94 @@ curl -H "X-Correlation-ID: my-custom-id" http://localhost:3000/
 
 Each framework adapter provides a `New()` function that creates middleware for that framework:
 
-#### Fiber (Context-Based): `goctxid_fiber.New(config ...goctxid.Config)`
+#### Fiber (Context-Based): `goctxid_fiber.New(config ...fiber.Config)`
 
 ```go
 import goctxid_fiber "github.com/hiiamtin/goctxid/adapters/fiber"
 
+// Default configuration
 app.Use(goctxid_fiber.New())
-app.Use(goctxid_fiber.New(goctxid.Config{...}))
+
+// Custom configuration
+app.Use(goctxid_fiber.New(goctxid_fiber.Config{
+    Config: goctxid.Config{
+        HeaderKey: "X-Request-ID",
+        Generator: goctxid.FastGenerator,
+    },
+    Next: func(c *fiber.Ctx) bool {
+        return c.Path() == "/health"
+    },
+}))
 ```
 
-#### Fiber Native (c.Locals()): `goctxid_fibernative.New(config ...goctxid.Config)`
+#### Fiber Native (c.Locals()): `goctxid_fibernative.New(config ...fibernative.Config)`
 
 ```go
 import goctxid_fibernative "github.com/hiiamtin/goctxid/adapters/fibernative"
 
+// Default configuration
 app.Use(goctxid_fibernative.New())
-app.Use(goctxid_fibernative.New(goctxid.Config{...}))
+
+// Custom configuration
+app.Use(goctxid_fibernative.New(goctxid_fibernative.Config{
+    Config: goctxid.Config{
+        HeaderKey: "X-Request-ID",
+    },
+    LocalsKey: "my_correlation_id",
+    Next: func(c *fiber.Ctx) bool {
+        return c.Path() == "/health"
+    },
+}))
 
 // Access ID from Locals
 correlationID := goctxid_fibernative.MustFromLocals(c)
+// Or with custom key
+correlationID := goctxid_fibernative.MustFromLocalsWithKey(c, "my_correlation_id")
 ```
 
-#### Echo: `goctxid_echo.New(config ...goctxid.Config)`
+#### Echo: `goctxid_echo.New(config ...echo.Config)`
 
 ```go
 import goctxid_echo "github.com/hiiamtin/goctxid/adapters/echo"
 
+// Default configuration
 e.Use(goctxid_echo.New())
-e.Use(goctxid_echo.New(goctxid.Config{...}))
+
+// Custom configuration
+e.Use(goctxid_echo.New(goctxid_echo.Config{
+    Config: goctxid.Config{
+        HeaderKey: "X-Request-ID",
+    },
+    Next: func(c echo.Context) bool {
+        return c.Path() == "/health"
+    },
+}))
 ```
 
-#### Gin: `goctxid_gin.New(config ...goctxid.Config)`
+#### Gin: `goctxid_gin.New(config ...gin.Config)`
 
 ```go
 import goctxid_gin "github.com/hiiamtin/goctxid/adapters/gin"
 
+// Default configuration
 r.Use(goctxid_gin.New())
-r.Use(goctxid_gin.New(goctxid.Config{...}))
+
+// Custom configuration
+r.Use(goctxid_gin.New(goctxid_gin.Config{
+    Config: goctxid.Config{
+        HeaderKey: "X-Request-ID",
+    },
+    Next: func(c *gin.Context) bool {
+        return c.Request.URL.Path == "/health"
+    },
+}))
 ```
 
 ### Configuration
 
-#### `Config`
+#### Base `goctxid.Config`
+
+All adapters embed this base configuration:
 
 ```go
 type Config struct {
@@ -309,14 +422,62 @@ type Config struct {
 
     // Generator is the function used to generate a new correlation ID
     // Must be thread-safe as it will be called concurrently by multiple requests
-    // Default: UUID v4
+    // Default: UUID v4 (goctxid.DefaultGenerator)
+    // Alternative: goctxid.FastGenerator (faster but exposes request count)
     Generator func() string
 }
 ```
 
 **⚠️ Important:** Custom generators MUST be thread-safe. See [Thread-Safety Requirements](./THREAD_SAFETY.md) for details and examples.
 
-**Custom Configuration Example (works with all adapters):**
+#### Adapter-Specific Configs
+
+Each adapter extends the base config with framework-specific options:
+
+**Fiber (Context-Based):**
+
+```go
+type Config struct {
+    goctxid.Config
+    // Next defines a function to skip middleware
+    Next func(c *fiber.Ctx) bool
+}
+```
+
+**Fiber Native (c.Locals()):**
+
+```go
+type Config struct {
+    goctxid.Config
+    // LocalsKey is the key used to store the correlation ID in c.Locals()
+    // Default: "goctxid"
+    LocalsKey string
+    // Next defines a function to skip middleware
+    Next func(c *fiber.Ctx) bool
+}
+```
+
+**Echo:**
+
+```go
+type Config struct {
+    goctxid.Config
+    // Next defines a function to skip middleware
+    Next func(c echo.Context) bool
+}
+```
+
+**Gin:**
+
+```go
+type Config struct {
+    goctxid.Config
+    // Next defines a function to skip middleware
+    Next func(c *gin.Context) bool
+}
+```
+
+**Custom Configuration Example:**
 
 ```go
 import (
@@ -325,10 +486,16 @@ import (
 )
 
 // Custom configuration
-app.Use(goctxid_fiber.New(goctxid.Config{
-    HeaderKey: "X-Request-ID",  // Use different header
-    Generator: func() string {   // Custom ID generator
-        return "REQ-" + uuid.NewString()
+app.Use(goctxid_fiber.New(goctxid_fiber.Config{
+    Config: goctxid.Config{
+        HeaderKey: "X-Request-ID",  // Use different header
+        Generator: func() string {   // Custom ID generator
+            return "REQ-" + uuid.NewString()
+        },
+    },
+    Next: func(c *fiber.Ctx) bool {
+        // Skip middleware for health checks
+        return c.Path() == "/health"
     },
 }))
 ```

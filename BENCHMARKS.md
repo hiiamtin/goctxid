@@ -67,13 +67,35 @@ These are the fundamental operations used by all adapters:
 |-----------|---------|-----------|-----------|-------------|
 | `FromContext()` | 4.86 ns | 0 B | 0 | Retrieve ID from context (zero-cost) |
 | `NewContext()` | 22.73 ns | 48 B | 1 | Create new context with ID |
-| `DefaultGenerator()` (UUID v4) | 349.3 ns | 64 B | 2 | Generate new UUID |
+| `DefaultGenerator()` (UUID v4) | 349.3 ns | 64 B | 2 | Generate new UUID (secure) |
+| `FastGenerator()` (atomic counter) | 234.1 ns | 192 B | 7 | Generate ID with counter (fast but exposes count) |
 
 **Key Takeaways:**
 
-- Context operations are extremely fast (< 25 ns)
-- UUID generation is the most expensive operation (~350 ns)
-- Zero allocations when reading from context
+* Context operations are extremely fast (< 25 ns)
+* UUID generation is the most expensive operation (~350 ns)
+* FastGenerator is ~33% faster than UUID v4 but exposes request count
+* Zero allocations when reading from context
+
+### Generator Performance Comparison
+
+| Generator | Single-Threaded | Parallel | Memory/op | Allocs/op | Privacy |
+|-----------|----------------|----------|-----------|-----------|---------|
+| **DefaultGenerator** (UUID v4) | 348.9 ns/op | 730.7 ns/op | 64 B | 2 | ✅ Secure |
+| **FastGenerator** (atomic counter) | 234.1 ns/op | 148.6 ns/op | 192 B | 7 | ⚠️ Exposes count |
+
+**Performance Gains:**
+
+* **Single-threaded**: FastGenerator is ~33% faster (115 ns saved per ID)
+* **Parallel**: FastGenerator is ~79% faster (582 ns saved per ID)
+
+**⚠️ Privacy Trade-off:** FastGenerator uses a sequential atomic counter embedded in the ID, which exposes your request count and traffic patterns. Use only when:
+
+* Performance is critical (high-throughput systems)
+* Request count exposure is acceptable
+* IDs are used only for internal tracing (not exposed to clients)
+
+For most applications, use `DefaultGenerator` (UUID v4) for better privacy/security.
 
 ## Throughput Estimates
 
@@ -91,23 +113,45 @@ Based on benchmark results, here's the estimated throughput for each adapter:
 
 ### ✅ When to Use
 
-- **Request tracing** - Overhead is minimal (300-900 ns per request)
-- **Distributed systems** - Essential for tracking requests across services
-- **Debugging** - Invaluable for correlating logs across microservices
-- **Production systems** - All adapters can handle 150,000+ req/s
+* **Request tracing** - Overhead is minimal (300-900 ns per request)
+* **Distributed systems** - Essential for tracking requests across services
+* **Debugging** - Invaluable for correlating logs across microservices
+* **Production systems** - All adapters can handle 150,000+ req/s
 
 ### 💡 Optimization Tips
 
-1. **Pass correlation IDs from upstream** - Saves ~350 ns (no UUID generation)
-2. **Access context freely** - `FromContext()` has zero allocations
-3. **Choose lightweight frameworks** - Echo/Gin are ~5x faster than Fiber baseline
-4. **Custom generators** - Keep them fast (< 100 ns if possible)
+1. **Use Next function to skip middleware** - Saves ~400-500 ns per skipped request (health checks, metrics, static files)
+2. **Use FastGenerator for high-throughput** - Saves ~115 ns per ID (single-threaded), ~582 ns (parallel)
+3. **Pass correlation IDs from upstream** - Saves ~350 ns (no UUID generation)
+4. **Access context freely** - `FromContext()` has zero allocations
+5. **Choose lightweight frameworks** - Echo/Gin are ~5x faster than Fiber baseline
+6. **Custom generators** - Keep them fast (< 100 ns if possible)
+
+#### Example: Combining Optimizations
+
+```go
+app.Use(goctxid_fiber.New(goctxid_fiber.Config{
+    Config: goctxid.Config{
+        Generator: goctxid.FastGenerator,  // ~115 ns saved per ID
+    },
+    Next: func(c *fiber.Ctx) bool {
+        // Skip middleware for health/metrics (~400-500 ns saved)
+        return c.Path() == "/health" || c.Path() == "/metrics"
+    },
+}))
+```
+
+**Potential Savings:**
+
+* Health check requests: ~400-500 ns saved (middleware skipped entirely)
+* Normal requests with FastGenerator: ~115 ns saved (single-threaded), ~582 ns (parallel)
+* Total optimization: Up to ~500-1000 ns per request depending on scenario
 
 ### ⚠️ Considerations
 
-- **UUID generation** takes ~350 ns - consider simpler ID schemes for extreme performance
-- **Existing IDs** are 30-50% faster than generating new ones
-- **Framework choice** matters more than middleware overhead
+* **UUID generation** takes ~350 ns - consider simpler ID schemes for extreme performance
+* **Existing IDs** are 30-50% faster than generating new ones
+* **Framework choice** matters more than middleware overhead
 
 ## Running Benchmarks
 
@@ -154,9 +198,9 @@ benchcmp old.txt new.txt  # Requires golang.org/x/tools/cmd/benchcmp
 
 All benchmarks in this document were run on:
 
-- **CPU**: Apple M1
-- **OS**: darwin/arm64
-- **Go Version**: 1.21+
-- **Test Mode**: Single-threaded benchmarks
+* **CPU**: Apple M1
+* **OS**: darwin/arm64
+* **Go Version**: 1.21+
+* **Test Mode**: Single-threaded benchmarks
 
 Results may vary on different hardware and configurations.
