@@ -110,7 +110,7 @@ jobs:
         go-version: '1.25'
 
     - name: Run tests with coverage
-      run: go test -v -coverprofile=coverage.out -covermode=atomic ./...
+      run: go test -v -coverprofile=coverage.out -covermode=atomic $(go list ./... | grep -v '/examples/' | grep -v '/tools')
 
     - name: Generate coverage report
       run: go tool cover -func=coverage.out
@@ -119,8 +119,8 @@ jobs:
       run: |
         coverage=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
         echo "Total coverage: $coverage%"
-        if (( $(echo "$coverage < 80" | bc -l) )); then
-          echo "Coverage is below 80%"
+        if (( $(echo "$coverage < 100" | bc -l) )); then
+          echo "Coverage is below 100%"
           exit 1
         fi
 

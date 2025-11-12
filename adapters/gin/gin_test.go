@@ -670,3 +670,91 @@ func TestReExportedFunctions(t *testing.T) {
 		t.Error("FastGenerator should return non-empty ID")
 	}
 }
+
+// TestGetCorrelationID tests the GetCorrelationID convenience function
+func TestGetCorrelationID(t *testing.T) {
+	r := gin.New()
+	r.Use(New())
+
+	r.GET("/test", func(c *gin.Context) {
+		// Test GetCorrelationID function
+		id := GetCorrelationID(c)
+		if id == "" {
+			t.Error("GetCorrelationID should return non-empty ID")
+		}
+
+		// Verify it matches what's in the context
+		idFromContext := MustFromContext(c.Request.Context())
+		if id != idFromContext {
+			t.Errorf("GetCorrelationID (%s) should match MustFromContext (%s)", id, idFromContext)
+		}
+
+		c.String(200, id)
+	})
+
+	req := httptest.NewRequest("GET", "/test", nil)
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != 200 {
+		t.Errorf("Expected status 200, got %d", rec.Code)
+	}
+}
+
+// TestNextFunction tests the Next configuration option
+func TestNextFunction(t *testing.T) {
+	r := gin.New()
+
+	// Configure middleware to skip requests to /skip path
+	r.Use(New(Config{
+		Next: func(c *gin.Context) bool {
+			return c.Request.URL.Path == "/skip"
+		},
+	}))
+
+	r.GET("/skip", func(c *gin.Context) {
+		// This should NOT have a correlation ID because middleware was skipped
+		id := GetCorrelationID(c)
+		if id != "" {
+			t.Errorf("Expected empty ID for skipped path, got %s", id)
+		}
+		c.String(200, "skipped")
+	})
+
+	r.GET("/process", func(c *gin.Context) {
+		// This SHOULD have a correlation ID
+		id := GetCorrelationID(c)
+		if id == "" {
+			t.Error("Expected non-empty ID for processed path")
+		}
+		c.String(200, id)
+	})
+
+	// Test skipped path
+	req := httptest.NewRequest("GET", "/skip", nil)
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != 200 {
+		t.Errorf("Expected status 200 for /skip, got %d", rec.Code)
+	}
+
+	// Verify no correlation ID header was set
+	if rec.Header().Get(DefaultHeaderKey) != "" {
+		t.Errorf("Expected no correlation ID header for skipped path, got %s", rec.Header().Get(DefaultHeaderKey))
+	}
+
+	// Test processed path
+	req = httptest.NewRequest("GET", "/process", nil)
+	rec = httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != 200 {
+		t.Errorf("Expected status 200 for /process, got %d", rec.Code)
+	}
+
+	// Verify correlation ID header was set
+	if rec.Header().Get(DefaultHeaderKey) == "" {
+		t.Error("Expected correlation ID header for processed path")
+	}
+}

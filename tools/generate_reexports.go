@@ -98,15 +98,9 @@ type TemplateData struct {
 	Package string
 }
 
-func main() {
-	if len(os.Args) < 2 {
-		fmt.Fprintf(os.Stderr, "Usage: go run generate_reexports.go <adapter_name>\n")
-		fmt.Fprintf(os.Stderr, "Example: go run generate_reexports.go fiber\n")
-		os.Exit(1)
-	}
-
-	packageName := os.Args[1]
-
+// generateReexports generates the re-export code for the given package name
+// and writes it to the provided writer. Returns an error if generation fails.
+func generateReexports(packageName string, writer interface{ Write([]byte) (int, error) }) error {
 	// Use special template for fibernative (no context functions)
 	var templateStr string
 	if packageName == "fibernative" {
@@ -117,17 +111,33 @@ func main() {
 
 	tmpl, err := template.New("reexport").Parse(templateStr)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error parsing template: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("error parsing template: %w", err)
 	}
 
 	data := TemplateData{
 		Package: packageName,
 	}
 
-	err = tmpl.Execute(os.Stdout, data)
+	err = tmpl.Execute(writer, data)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error executing template: %v\n", err)
+		return fmt.Errorf("error executing template: %w", err)
+	}
+
+	return nil
+}
+
+func main() {
+	if len(os.Args) < 2 {
+		fmt.Fprintf(os.Stderr, "Usage: go run generate_reexports.go <adapter_name>\n")
+		fmt.Fprintf(os.Stderr, "Example: go run generate_reexports.go fiber\n")
+		os.Exit(1)
+	}
+
+	packageName := os.Args[1]
+
+	err := generateReexports(packageName, os.Stdout)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
 }
