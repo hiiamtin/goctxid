@@ -79,6 +79,34 @@ func New(config ...Config) gin.HandlerFunc {
 // GetCorrelationID retrieves the correlation ID from the Gin context.
 // Returns the correlation ID or an empty string if not found.
 // This is a convenience function equivalent to MustFromContext(c.Request.Context()).
+//
+// ⚠️ GOROUTINE SAFETY WARNING:
+// Do NOT pass *gin.Context directly into goroutines! Gin reuses context objects.
+// Instead, pass the context.Context or copy the correlation ID value:
+//
+//	// ✅ CORRECT - Option 1: Pass context.Context
+//	ctx := c.Request.Context()
+//	go func(ctx context.Context) {
+//	    id := MustFromContext(ctx)
+//	    log.Printf("ID: %s", id)
+//	}(ctx)
+//
+//	// ✅ CORRECT - Option 2: Copy the value
+//	correlationID := GetCorrelationID(c)
+//	go func(id string) {
+//	    log.Printf("ID: %s", id)
+//	}(correlationID)
+//
+//	// ❌ WRONG - Variable capture race condition:
+//	correlationID := GetCorrelationID(c)
+//	go func() {
+//	    log.Printf("ID: %s", correlationID) // May see wrong value!
+//	}()
+//
+//	// ❌ WRONG - Context reuse:
+//	go func() {
+//	    id := GetCorrelationID(c) // c may be reused!
+//	}()
 func GetCorrelationID(c *gin.Context) string {
 	return MustFromContext(c.Request.Context())
 }

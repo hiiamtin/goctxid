@@ -120,6 +120,21 @@ func MustFromLocalsWithKey(c *fiber.Ctx, key string) string {
 // GetCorrelationID retrieves the correlation ID from the Fiber Local.
 // Returns the correlation ID or an empty string if not found.
 // This is a convenience function equivalent to MustFromLocals(c).
+//
+// ⚠️ GOROUTINE SAFETY WARNING:
+// Do NOT pass *fiber.Ctx directly into goroutines! Fiber recycles context objects.
+// Always copy the correlation ID value before using it in a goroutine:
+//
+//	// ✅ CORRECT:
+//	correlationID := GetCorrelationID(c)
+//	go func(id string) {
+//	    log.Printf("ID: %s", id)
+//	}(correlationID)
+//
+//	// ❌ WRONG:
+//	go func() {
+//	    id := GetCorrelationID(c) // c may be recycled!
+//	}()
 func GetCorrelationID(c *fiber.Ctx) string {
 	return MustFromLocals(c)
 }

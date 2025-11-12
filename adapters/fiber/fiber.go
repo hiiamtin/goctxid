@@ -79,6 +79,28 @@ func New(config ...Config) fiber.Handler {
 // GetCorrelationID retrieves the correlation ID from the Fiber context.
 // Returns the correlation ID or an empty string if not found.
 // This is a convenience function equivalent to MustFromContext(c.UserContext()).
+//
+// ⚠️ GOROUTINE SAFETY WARNING:
+// Do NOT pass *fiber.Ctx directly into goroutines! Fiber recycles context objects.
+// Instead, pass the context.Context or copy the correlation ID value:
+//
+//	// ✅ CORRECT - Option 1: Pass context.Context
+//	ctx := c.UserContext()
+//	go func(ctx context.Context) {
+//	    id := MustFromContext(ctx)
+//	    log.Printf("ID: %s", id)
+//	}(ctx)
+//
+//	// ✅ CORRECT - Option 2: Copy the value
+//	correlationID := GetCorrelationID(c)
+//	go func(id string) {
+//	    log.Printf("ID: %s", id)
+//	}(correlationID)
+//
+//	// ❌ WRONG:
+//	go func() {
+//	    id := GetCorrelationID(c) // c may be recycled!
+//	}()
 func GetCorrelationID(c *fiber.Ctx) string {
 	return MustFromContext(c.UserContext())
 }
