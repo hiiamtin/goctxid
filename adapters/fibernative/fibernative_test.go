@@ -353,7 +353,7 @@ func TestMiddlewareChaining(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Request failed: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	if firstHandlerID == "" || secondHandlerID == "" {
 		t.Error("Correlation ID not propagated through middleware chain")
@@ -399,7 +399,7 @@ func TestConcurrentRequests(t *testing.T) {
 				t.Errorf("Request failed: %v", err)
 				return
 			}
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			body, _ := io.ReadAll(resp.Body)
 			responseID := string(body)
@@ -454,7 +454,7 @@ func TestGeneratorThreadSafety(t *testing.T) {
 				t.Errorf("Request failed: %v", err)
 				return
 			}
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		}()
 	}
 
