@@ -23,7 +23,7 @@ func init() {
 func TestNew(t *testing.T) {
 	tests := []struct {
 		name               string
-		config             []goctxid.Config
+		config             []Config
 		requestHeader      string
 		requestHeaderValue string
 		expectedInContext  string
@@ -50,9 +50,11 @@ func TestNew(t *testing.T) {
 		},
 		{
 			name: "uses custom header key",
-			config: []goctxid.Config{
+			config: []Config{
 				{
-					HeaderKey: "X-Custom-ID",
+					Config: goctxid.Config{
+						HeaderKey: "X-Custom-ID",
+					},
 				},
 			},
 			requestHeader:      "X-Custom-ID",
@@ -63,10 +65,12 @@ func TestNew(t *testing.T) {
 		},
 		{
 			name: "uses custom generator",
-			config: []goctxid.Config{
+			config: []Config{
 				{
-					Generator: func() string {
-						return "custom-generated-id"
+					Config: goctxid.Config{
+						Generator: func() string {
+							return "custom-generated-id"
+						},
 					},
 				},
 			},
@@ -145,7 +149,7 @@ func TestNew(t *testing.T) {
 func TestConfigDefault(t *testing.T) {
 	tests := []struct {
 		name              string
-		config            []goctxid.Config
+		config            []Config
 		expectedHeaderKey string
 		testGenerator     bool
 	}{
@@ -157,23 +161,25 @@ func TestConfigDefault(t *testing.T) {
 		},
 		{
 			name:              "uses defaults when empty config provided",
-			config:            []goctxid.Config{{}},
+			config:            []Config{{}},
 			expectedHeaderKey: goctxid.DefaultHeaderKey,
 			testGenerator:     true,
 		},
 		{
 			name: "uses custom header key",
-			config: []goctxid.Config{
-				{HeaderKey: "X-Request-ID"},
+			config: []Config{
+				{Config: goctxid.Config{HeaderKey: "X-Request-ID"}},
 			},
 			expectedHeaderKey: "X-Request-ID",
 			testGenerator:     true,
 		},
 		{
 			name: "uses custom generator",
-			config: []goctxid.Config{
+			config: []Config{
 				{
-					Generator: func() string { return "test" },
+					Config: goctxid.Config{
+						Generator: func() string { return "test" },
+					},
 				},
 			},
 			expectedHeaderKey: goctxid.DefaultHeaderKey,
@@ -302,7 +308,7 @@ func TestGeneratorThreadSafety(t *testing.T) {
 	}
 
 	r := gin.New()
-	r.Use(New(goctxid.Config{Generator: generator}))
+	r.Use(New(Config{Config: goctxid.Config{Generator: generator}}))
 
 	r.GET("/test", func(c *gin.Context) {
 		c.String(http.StatusOK, "OK")

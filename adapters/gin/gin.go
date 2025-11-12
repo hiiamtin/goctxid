@@ -5,10 +5,20 @@ import (
 	"github.com/hiiamtin/goctxid"
 )
 
-// configDefault is a helper function that merges the provided config with the default config
-func configDefault(config ...goctxid.Config) goctxid.Config {
+// Config extends goctxid.Config with Gin-specific options
+type Config struct {
+	goctxid.Config
 
-	cfg := goctxid.Config{}
+	// Next defines a function to skip this middleware when returned true.
+	//
+	// Optional. Default: nil
+	Next func(c *gin.Context) bool
+}
+
+// configDefault is a helper function that merges the provided config with the default config
+func configDefault(config ...Config) Config {
+
+	var cfg Config
 
 	// If a config is provided, use it
 	if len(config) > 0 {
@@ -28,35 +38,40 @@ func configDefault(config ...goctxid.Config) goctxid.Config {
 }
 
 // New creates a new Gin middleware for correlation ID management
-func New(config ...goctxid.Config) gin.HandlerFunc {
+func New(config ...Config) gin.HandlerFunc {
 
 	// 1. Merge the provided config with the default config
 	cfg := configDefault(config...)
 
 	// 2. Return the middleware function
 	return func(c *gin.Context) {
-		// 3. Extract the correlation ID from the request header
+		// 3. Check if we should skip this middleware
+		if cfg.Next != nil && cfg.Next(c) {
+			c.Next()
+			return
+		}
+
+		// 4. Extract the correlation ID from the request header
 		correlationID := c.GetHeader(cfg.HeaderKey)
 
-		// 4. If not found, generate a new one
+		// 5. If not found, generate a new one
 		if correlationID == "" {
 			correlationID = cfg.Generator()
 		}
 
-		// 5. Set the response header (send back to the client)
+		// 6. Set the response header (send back to the client)
 		c.Header(cfg.HeaderKey, correlationID)
 
-		// 6. Get the current request context
+		// 7. Get the current request context
 		ctx := c.Request.Context()
 
-		// 7. Create a new context with our ID
+		// 8. Create a new context with our ID
 		newCtx := goctxid.NewContext(ctx, correlationID)
 
-		// 8. Set the new context back into the request
+		// 9. Set the new context back into the request
 		c.Request = c.Request.WithContext(newCtx)
 
-		// 9. Continue to the next handler
+		// 10. Continue to the next handler
 		c.Next()
 	}
 }
-

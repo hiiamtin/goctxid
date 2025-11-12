@@ -19,7 +19,7 @@ import (
 func TestNew(t *testing.T) {
 	tests := []struct {
 		name               string
-		config             []goctxid.Config
+		config             []Config
 		requestHeader      string
 		requestHeaderValue string
 		expectedInContext  string
@@ -46,9 +46,11 @@ func TestNew(t *testing.T) {
 		},
 		{
 			name: "uses custom header key",
-			config: []goctxid.Config{
+			config: []Config{
 				{
-					HeaderKey: "X-Custom-ID",
+					Config: goctxid.Config{
+						HeaderKey: "X-Custom-ID",
+					},
 				},
 			},
 			requestHeader:      "X-Custom-ID",
@@ -59,10 +61,12 @@ func TestNew(t *testing.T) {
 		},
 		{
 			name: "uses custom generator",
-			config: []goctxid.Config{
+			config: []Config{
 				{
-					Generator: func() string {
-						return "custom-generated-id"
+					Config: goctxid.Config{
+						Generator: func() string {
+							return "custom-generated-id"
+						},
 					},
 				},
 			},
@@ -144,7 +148,7 @@ func TestNew(t *testing.T) {
 func TestConfigDefault(t *testing.T) {
 	tests := []struct {
 		name              string
-		config            []goctxid.Config
+		config            []Config
 		expectedHeaderKey string
 		testGenerator     bool
 	}{
@@ -156,23 +160,25 @@ func TestConfigDefault(t *testing.T) {
 		},
 		{
 			name:              "uses defaults when empty config provided",
-			config:            []goctxid.Config{{}},
+			config:            []Config{{}},
 			expectedHeaderKey: goctxid.DefaultHeaderKey,
 			testGenerator:     true,
 		},
 		{
 			name: "uses custom header key",
-			config: []goctxid.Config{
-				{HeaderKey: "X-Request-ID"},
+			config: []Config{
+				{Config: goctxid.Config{HeaderKey: "X-Request-ID"}},
 			},
 			expectedHeaderKey: "X-Request-ID",
 			testGenerator:     true,
 		},
 		{
 			name: "uses custom generator",
-			config: []goctxid.Config{
+			config: []Config{
 				{
-					Generator: func() string { return "test" },
+					Config: goctxid.Config{
+						Generator: func() string { return "test" },
+					},
 				},
 			},
 			expectedHeaderKey: goctxid.DefaultHeaderKey,
@@ -308,7 +314,7 @@ func TestGeneratorThreadSafety(t *testing.T) {
 	}
 
 	app := fiber.New()
-	app.Use(New(goctxid.Config{Generator: generator}))
+	app.Use(New(Config{Config: goctxid.Config{Generator: generator}}))
 
 	app.Get("/test", func(c *fiber.Ctx) error {
 		return c.SendString("OK")
@@ -662,4 +668,99 @@ func TestConcurrentRequestsWithGoroutines(t *testing.T) {
 
 	// Uncomment to debug:
 	// t.Logf("✅ Test passed! All %d requests had unique IDs and goroutines captured correct values", numRequests)
+}
+
+func TestNext(t *testing.T) {
+	tests := []struct {
+		name         string
+		path         string
+		nextFunc     func(c *fiber.Ctx) bool
+		shouldSkip   bool
+		shouldHaveID bool
+	}{
+		{
+			name:         "middleware runs when Next is nil",
+			path:         "/test",
+			nextFunc:     nil,
+			shouldSkip:   false,
+			shouldHaveID: true,
+		},
+		{
+			name:         "middleware runs when Next returns false",
+			path:         "/test",
+			nextFunc:     func(c *fiber.Ctx) bool { return false },
+			shouldSkip:   false,
+			shouldHaveID: true,
+		},
+		{
+			name:         "middleware skips when Next returns true",
+			path:         "/health",
+			nextFunc:     func(c *fiber.Ctx) bool { return c.Path() == "/health" },
+			shouldSkip:   true,
+			shouldHaveID: false,
+		},
+		{
+			name:         "middleware skips for /metrics path",
+			path:         "/metrics",
+			nextFunc:     func(c *fiber.Ctx) bool { return c.Path() == "/metrics" || c.Path() == "/health" },
+			shouldSkip:   true,
+			shouldHaveID: false,
+		},
+		{
+			name:         "middleware runs for normal path when Next checks specific paths",
+			path:         "/api/users",
+			nextFunc:     func(c *fiber.Ctx) bool { return c.Path() == "/metrics" || c.Path() == "/health" },
+			shouldSkip:   false,
+			shouldHaveID: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			app := fiber.New()
+
+			// Apply middleware with Next function
+			app.Use(New(Config{
+				Next: tt.nextFunc,
+			}))
+
+			var contextID string
+			app.Get(tt.path, func(c *fiber.Ctx) error {
+				id, _ := goctxid.FromContext(c.UserContext())
+				contextID = id
+				return c.SendString("OK")
+			})
+
+			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			resp, err := app.Test(req)
+			if err != nil {
+				t.Fatalf("Failed to send request: %v", err)
+			}
+			defer resp.Body.Close()
+
+			// Check if ID was set in context
+			if tt.shouldHaveID {
+				if contextID == "" {
+					t.Error("Expected correlation ID in context, but got empty string")
+				}
+				// Check response header
+				headerID := resp.Header.Get(goctxid.DefaultHeaderKey)
+				if headerID == "" {
+					t.Error("Expected correlation ID in response header, but got empty string")
+				}
+				if contextID != headerID {
+					t.Errorf("Context ID (%s) doesn't match header ID (%s)", contextID, headerID)
+				}
+			} else {
+				if contextID != "" {
+					t.Errorf("Expected no correlation ID in context (middleware should be skipped), but got: %s", contextID)
+				}
+				// Check response header
+				headerID := resp.Header.Get(goctxid.DefaultHeaderKey)
+				if headerID != "" {
+					t.Errorf("Expected no correlation ID in response header (middleware should be skipped), but got: %s", headerID)
+				}
+			}
+		})
+	}
 }

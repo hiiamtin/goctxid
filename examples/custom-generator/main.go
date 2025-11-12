@@ -36,19 +36,25 @@ func main() {
 	app := fiber.New()
 
 	// Example 1: Using custom sequential ID generator
-	app.Use("/api/v1/*", goctxid_fiber.New(goctxid.Config{
-		Generator: customIDGenerator,
+	app.Use("/api/v1/*", goctxid_fiber.New(goctxid_fiber.Config{
+		Config: goctxid.Config{
+			Generator: customIDGenerator,
+		},
 	}))
 
 	// Example 2: Using prefixed UUID generator
-	app.Use("/api/v2/*", goctxid_fiber.New(goctxid.Config{
-		Generator: prefixedUUIDGenerator("MYAPP"),
+	app.Use("/api/v2/*", goctxid_fiber.New(goctxid_fiber.Config{
+		Config: goctxid.Config{
+			Generator: prefixedUUIDGenerator("MYAPP"),
+		},
 	}))
 
 	// Example 3: Custom header key
-	app.Use("/api/v3/*", goctxid_fiber.New(goctxid.Config{
-		HeaderKey: "X-Request-ID", // Different header name
-		Generator: customIDGenerator,
+	app.Use("/api/v3/*", goctxid_fiber.New(goctxid_fiber.Config{
+		Config: goctxid.Config{
+			HeaderKey: "X-Request-ID", // Different header name
+			Generator: customIDGenerator,
+		},
 	}))
 
 	// Routes for testing different configurations

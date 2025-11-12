@@ -18,7 +18,7 @@ import (
 func TestNew(t *testing.T) {
 	tests := []struct {
 		name               string
-		config             []goctxid.Config
+		config             []Config
 		requestHeader      string
 		requestHeaderValue string
 		expectedInLocals   string
@@ -45,9 +45,11 @@ func TestNew(t *testing.T) {
 		},
 		{
 			name: "uses custom header key",
-			config: []goctxid.Config{
+			config: []Config{
 				{
-					HeaderKey: "X-Custom-ID",
+					Config: goctxid.Config{
+						HeaderKey: "X-Custom-ID",
+					},
 				},
 			},
 			requestHeader:      "X-Custom-ID",
@@ -58,10 +60,12 @@ func TestNew(t *testing.T) {
 		},
 		{
 			name: "uses custom generator",
-			config: []goctxid.Config{
+			config: []Config{
 				{
-					Generator: func() string {
-						return "custom-generated-id"
+					Config: goctxid.Config{
+						Generator: func() string {
+							return "custom-generated-id"
+						},
 					},
 				},
 			},
@@ -150,7 +154,7 @@ func TestFromLocals(t *testing.T) {
 		{
 			name: "returns ID when present",
 			setupFunc: func(c *fiber.Ctx) {
-				c.Locals(LocalsKey, "test-id-123")
+				c.Locals(DefaultLocalsKey, "test-id-123")
 			},
 			expectedID: "test-id-123",
 			expectedOK: true,
@@ -166,7 +170,7 @@ func TestFromLocals(t *testing.T) {
 		{
 			name: "returns empty when wrong type",
 			setupFunc: func(c *fiber.Ctx) {
-				c.Locals(LocalsKey, 12345) // Wrong type
+				c.Locals(DefaultLocalsKey, 12345) // Wrong type
 			},
 			expectedID: "",
 			expectedOK: false,
@@ -208,7 +212,7 @@ func TestMustFromLocals(t *testing.T) {
 		{
 			name: "returns ID when present",
 			setupFunc: func(c *fiber.Ctx) {
-				c.Locals(LocalsKey, "test-id-456")
+				c.Locals(DefaultLocalsKey, "test-id-456")
 			},
 			expectedID: "test-id-456",
 		},
@@ -247,39 +251,55 @@ func TestMustFromLocals(t *testing.T) {
 func TestConfigDefault(t *testing.T) {
 	tests := []struct {
 		name              string
-		config            []goctxid.Config
+		config            []Config
 		expectedHeaderKey string
+		expectedLocalsKey string
 		testGenerator     bool
 	}{
 		{
 			name:              "uses defaults when no config provided",
 			config:            nil,
 			expectedHeaderKey: goctxid.DefaultHeaderKey,
+			expectedLocalsKey: DefaultLocalsKey,
 			testGenerator:     true,
 		},
 		{
 			name:              "uses defaults when empty config provided",
-			config:            []goctxid.Config{{}},
+			config:            []Config{{}},
 			expectedHeaderKey: goctxid.DefaultHeaderKey,
+			expectedLocalsKey: DefaultLocalsKey,
 			testGenerator:     true,
 		},
 		{
 			name: "uses custom header key",
-			config: []goctxid.Config{
-				{HeaderKey: "X-Request-ID"},
+			config: []Config{
+				{Config: goctxid.Config{HeaderKey: "X-Request-ID"}},
 			},
 			expectedHeaderKey: "X-Request-ID",
+			expectedLocalsKey: DefaultLocalsKey,
 			testGenerator:     true,
 		},
 		{
 			name: "uses custom generator",
-			config: []goctxid.Config{
+			config: []Config{
 				{
-					Generator: func() string { return "test" },
+					Config: goctxid.Config{
+						Generator: func() string { return "test" },
+					},
 				},
 			},
 			expectedHeaderKey: goctxid.DefaultHeaderKey,
+			expectedLocalsKey: DefaultLocalsKey,
 			testGenerator:     false,
+		},
+		{
+			name: "uses custom locals key",
+			config: []Config{
+				{LocalsKey: "my_custom_key"},
+			},
+			expectedHeaderKey: goctxid.DefaultHeaderKey,
+			expectedLocalsKey: "my_custom_key",
+			testGenerator:     true,
 		},
 	}
 
@@ -289,6 +309,10 @@ func TestConfigDefault(t *testing.T) {
 
 			if cfg.HeaderKey != tt.expectedHeaderKey {
 				t.Errorf("HeaderKey = %v, want %v", cfg.HeaderKey, tt.expectedHeaderKey)
+			}
+
+			if cfg.LocalsKey != tt.expectedLocalsKey {
+				t.Errorf("LocalsKey = %v, want %v", cfg.LocalsKey, tt.expectedLocalsKey)
 			}
 
 			if cfg.Generator == nil {
@@ -411,7 +435,7 @@ func TestGeneratorThreadSafety(t *testing.T) {
 	}
 
 	app := fiber.New()
-	app.Use(New(goctxid.Config{Generator: generator}))
+	app.Use(New(Config{Config: goctxid.Config{Generator: generator}}))
 
 	app.Get("/test", func(c *fiber.Ctx) error {
 		return c.SendString("OK")

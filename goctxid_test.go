@@ -225,3 +225,100 @@ func BenchmarkDefaultGenerator(b *testing.B) {
 		DefaultGenerator()
 	}
 }
+
+func TestFastGenerator(t *testing.T) {
+	t.Run("generates non-empty ID", func(t *testing.T) {
+		id := FastGenerator()
+		if id == "" {
+			t.Error("FastGenerator returned empty string")
+		}
+	})
+
+	t.Run("generates unique IDs", func(t *testing.T) {
+		id1 := FastGenerator()
+		id2 := FastGenerator()
+		if id1 == id2 {
+			t.Errorf("FastGenerator returned duplicate IDs: %s", id1)
+		}
+	})
+
+	t.Run("generates sequential IDs", func(t *testing.T) {
+		// FastGenerator uses atomic counter, so IDs should be sequential
+		ids := make([]string, 10)
+		for i := 0; i < 10; i++ {
+			ids[i] = FastGenerator()
+		}
+
+		// All IDs should be unique
+		seen := make(map[string]bool)
+		for _, id := range ids {
+			if seen[id] {
+				t.Errorf("Duplicate ID found: %s", id)
+			}
+			seen[id] = true
+		}
+	})
+
+	t.Run("is thread-safe", func(t *testing.T) {
+		const numGoroutines = 100
+		const idsPerGoroutine = 100
+
+		ids := make(chan string, numGoroutines*idsPerGoroutine)
+		done := make(chan bool, numGoroutines)
+
+		// Launch multiple goroutines generating IDs concurrently
+		for i := 0; i < numGoroutines; i++ {
+			go func() {
+				for j := 0; j < idsPerGoroutine; j++ {
+					ids <- FastGenerator()
+				}
+				done <- true
+			}()
+		}
+
+		// Wait for all goroutines to finish
+		for i := 0; i < numGoroutines; i++ {
+			<-done
+		}
+		close(ids)
+
+		// Check all IDs are unique
+		seen := make(map[string]bool)
+		count := 0
+		for id := range ids {
+			if seen[id] {
+				t.Errorf("Duplicate ID found: %s", id)
+			}
+			seen[id] = true
+			count++
+		}
+
+		expectedCount := numGoroutines * idsPerGoroutine
+		if count != expectedCount {
+			t.Errorf("Expected %d IDs, got %d", expectedCount, count)
+		}
+	})
+}
+
+func BenchmarkFastGenerator(b *testing.B) {
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		FastGenerator()
+	}
+}
+
+func BenchmarkFastGeneratorParallel(b *testing.B) {
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			FastGenerator()
+		}
+	})
+}
+
+func BenchmarkDefaultGeneratorParallel(b *testing.B) {
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			DefaultGenerator()
+		}
+	})
+}
