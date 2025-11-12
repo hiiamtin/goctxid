@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        go-version: ['1.25']
+        go-version: ['1.23']
     
     steps:
     - name: Checkout code
@@ -49,7 +49,7 @@ jobs:
       run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
 
     - name: Upload coverage to Codecov
-      if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.25'
+      if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.23'
       uses: codecov/codecov-action@v4
       with:
         file: ./coverage.out
@@ -68,7 +68,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v6.0.0
       with:
-        go-version: '1.25'
+        go-version: '1.23'
 
     - name: Run golangci-lint
       uses: golangci/golangci-lint-action@v9.0.0
@@ -84,7 +84,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v6.0.0
       with:
-        go-version: '1.25'
+        go-version: '1.23'
 
     - name: Build
       run: go build -v ./...
@@ -107,7 +107,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v6.0.0
       with:
-        go-version: '1.25'
+        go-version: '1.23'
 
     - name: Run tests with coverage
       run: go test -v -coverprofile=coverage.out -covermode=atomic ./...
@@ -135,7 +135,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v6.0.0
       with:
-        go-version: '1.25'
+        go-version: '1.23'
 
     - name: Run benchmarks
       run: go test -bench=. -benchmem -run=^$ ./...
@@ -143,7 +143,10 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+      security-events: write
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -169,7 +172,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v6.0.0
       with:
-        go-version: '1.25'
+        go-version: '1.23'
 
     - name: Run code generation
       run: make generate-reexports
