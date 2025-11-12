@@ -314,6 +314,8 @@ type Config struct {
 }
 ```
 
+**⚠️ Important:** Custom generators MUST be thread-safe. See [Thread-Safety Requirements](./THREAD_SAFETY.md) for details and examples.
+
 **Custom Configuration Example (works with all adapters):**
 
 ```go
@@ -470,6 +472,13 @@ go test -bench=. -benchmem
 ```
 
 **Test Coverage:** 100%
+
+## 📚 Documentation
+
+* **[Thread-Safety Requirements](./THREAD_SAFETY.md)** - Comprehensive guide on thread-safety requirements for custom generators and goroutine usage
+* **[Adapter Documentation](./adapters/README.md)** - Detailed information about framework adapters
+* **[Examples](./examples/README.md)** - Complete working examples for all supported frameworks
+* **[Benchmarks](./BENCHMARKS.md)** - Performance comparisons between adapters
 
 ## 🤝 Contributing
 
