@@ -1,0 +1,134 @@
+package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/gofiber/fiber/v2"
+	goctxid_fibernative "github.com/hiiamtin/goctxid/adapters/fibernative"
+)
+
+// ⚠️ WARNING: THESE BENCHMARKS ARE UNRELIABLE AND DO NOT MEASURE REAL PERFORMANCE ⚠️
+//
+// Problem: Fiber uses app.Test() which creates a full HTTP connection for each iteration,
+// while Gin/Echo use ServeHTTP() which is a direct handler call. This makes Fiber appear
+// artificially slow in benchmarks (~24,000 ns/op) when real-world load testing with k6
+// shows Fiber is actually FASTER than Gin (~28% faster in production scenarios).
+//
+// Why this happens:
+// - app.Test() creates HTTP server + TCP connection + network stack overhead
+// - ServeHTTP() (Gin/Echo) calls handler directly with minimal overhead
+// - This creates an unfair comparison that doesn't reflect real-world performance
+//
+// Real-world performance (k6 load testing):
+// - Fiber: 7,512 RPS (Database I/O) - FASTEST
+// - Gin:   5,877 RPS (Database I/O)
+// - Fiber is ~28% faster in production
+//
+// Conclusion: DO NOT use these benchmarks to compare frameworks.
+// Use real load testing tools (k6, wrk, ab) instead.
+//
+// Reference: https://github.com/hiiamtin/go-vs-java/blob/main/COMPARISON_REPORT.md
+
+func setupApp() *fiber.App {
+	SetupBenchmarkLogger() // Configure logger to write to discard for benchmarks
+
+	app := fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+	})
+
+	app.Use(goctxid_fibernative.New())
+	app.Use(zapMiddleware())
+
+	app.Get("/health", healthCheck)
+	app.Get("/users/:id", getUser)
+	app.Post("/users", createUser)
+
+	return app
+}
+
+func BenchmarkHealthCheck(b *testing.B) {
+	app := setupApp()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		req := httptest.NewRequest("GET", "/health", nil)
+		req.Header.Set("X-Correlation-ID", "test-correlation-id")
+		app.Test(req, -1)
+	}
+}
+
+func BenchmarkGetUser(b *testing.B) {
+	app := setupApp()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		req := httptest.NewRequest("GET", "/users/123", nil)
+		req.Header.Set("X-Correlation-ID", "test-correlation-id")
+		app.Test(req, -1)
+	}
+}
+
+func BenchmarkCreateUser(b *testing.B) {
+	app := setupApp()
+
+	body := []byte(`{"name":"John Doe"}`)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		req := httptest.NewRequest("POST", "/users", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Correlation-ID", "test-correlation-id")
+		app.Test(req, -1)
+	}
+}
+
+func BenchmarkWithCorrelationID(b *testing.B) {
+	app := setupApp()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		req := httptest.NewRequest("GET", "/health", nil)
+		req.Header.Set("X-Correlation-ID", "benchmark-correlation-id")
+		app.Test(req, -1)
+	}
+}
+
+func BenchmarkConcurrent(b *testing.B) {
+	app := setupApp()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			req := httptest.NewRequest("GET", "/users/456", nil)
+			req.Header.Set("X-Correlation-ID", "concurrent-test-id")
+			app.Test(req, -1)
+		}
+	})
+}
+
+func TestGetUser(t *testing.T) {
+	app := setupApp()
+
+	req := httptest.NewRequest("GET", "/users/123", nil)
+	req.Header.Set("X-Correlation-ID", "test-correlation-id")
+
+	resp, err := app.Test(req, -1)
+	if err != nil {
+		t.Fatalf("Failed to send request: %v", err)
+	}
+
+	if resp.StatusCode != 200 {
+		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	if result["id"] != "123" {
+		t.Errorf("Expected user id 123, got %v", result["id"])
+	}
+}

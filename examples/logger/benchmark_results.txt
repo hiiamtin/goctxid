@@ -1,0 +1,180 @@
+======================================
+zerolog-gin
+======================================
+goos: darwin
+goarch: arm64
+pkg: github.com/hiiamtin/goctxid/poc/zerolog-gin
+cpu: Apple M1
+BenchmarkHealthCheck-8         	  271712	      3882 ns/op	    7104 B/op	      34 allocs/op
+BenchmarkGetUser-8             	     100	  10963173 ns/op	    7788 B/op	      38 allocs/op
+BenchmarkCreateUser-8          	      55	  21008702 ns/op	    9107 B/op	      47 allocs/op
+BenchmarkWithCorrelationID-8   	  281390	      4026 ns/op	    7425 B/op	      35 allocs/op
+BenchmarkConcurrent-8          	     843	   1379148 ns/op	    7748 B/op	      38 allocs/op
+PASS
+ok  	github.com/hiiamtin/goctxid/poc/zerolog-gin	6.774s
+
+======================================
+zerolog-fiber
+======================================
+goos: darwin
+goarch: arm64
+pkg: github.com/hiiamtin/goctxid/poc/zerolog-fiber
+cpu: Apple M1
+BenchmarkHealthCheck-8         	   55636	     24645 ns/op	    7197 B/op	      40 allocs/op
+BenchmarkGetUser-8             	     100	  11910475 ns/op	    8237 B/op	      46 allocs/op
+BenchmarkCreateUser-8          	      58	  21097589 ns/op	   10520 B/op	      61 allocs/op
+BenchmarkWithCorrelationID-8   	   91669	     12815 ns/op	    7298 B/op	      41 allocs/op
+BenchmarkConcurrent-8          	     847	   1390247 ns/op	    8097 B/op	      45 allocs/op
+PASS
+ok  	github.com/hiiamtin/goctxid/poc/zerolog-fiber	10.495s
+
+======================================
+zerolog-fibernative
+======================================
+goos: darwin
+goarch: arm64
+pkg: github.com/hiiamtin/goctxid/poc/zerolog-fibernative
+cpu: Apple M1
+BenchmarkHealthCheck-8         	   77578	     12999 ns/op	    7188 B/op	      41 allocs/op
+BenchmarkGetUser-8             	     100	  11041728 ns/op	    8236 B/op	      48 allocs/op
+BenchmarkCreateUser-8          	      56	  20949624 ns/op	   10564 B/op	      63 allocs/op
+BenchmarkWithCorrelationID-8   	   92586	     12178 ns/op	    7281 B/op	      42 allocs/op
+BenchmarkConcurrent-8          	     837	   1403752 ns/op	    8111 B/op	      47 allocs/op
+PASS
+ok  	github.com/hiiamtin/goctxid/poc/zerolog-fibernative	8.990s
+
+======================================
+zerolog-echo
+======================================
+goos: darwin
+goarch: arm64
+pkg: github.com/hiiamtin/goctxid/poc/zerolog-echo
+cpu: Apple M1
+BenchmarkHealthCheck-8         	  296432	      3383 ns/op	    7164 B/op	      34 allocs/op
+BenchmarkGetUser-8             	     100	  11002800 ns/op	    7816 B/op	      37 allocs/op
+BenchmarkCreateUser-8          	      58	  20923797 ns/op	    9048 B/op	      47 allocs/op
+BenchmarkWithCorrelationID-8   	  383493	      3454 ns/op	    7485 B/op	      35 allocs/op
+BenchmarkConcurrent-8          	     841	   1377107 ns/op	    7771 B/op	      37 allocs/op
+PASS
+ok  	github.com/hiiamtin/goctxid/poc/zerolog-echo	7.638s
+
+======================================
+zap-gin
+======================================
+goos: darwin
+goarch: arm64
+pkg: github.com/hiiamtin/goctxid/poc/zap-gin
+cpu: Apple M1
+BenchmarkHealthCheck-8         	  273856	      4701 ns/op	    7818 B/op	      35 allocs/op
+BenchmarkGetUser-8             	     100	  10949617 ns/op	    9544 B/op	      46 allocs/op
+BenchmarkCreateUser-8          	      56	  21142861 ns/op	   10958 B/op	      56 allocs/op
+BenchmarkWithCorrelationID-8   	  275317	      4342 ns/op	    8141 B/op	      36 allocs/op
+BenchmarkConcurrent-8          	     854	   1384905 ns/op	    9543 B/op	      46 allocs/op
+PASS
+ok  	github.com/hiiamtin/goctxid/poc/zap-gin	8.712s
+
+======================================
+zap-fiber
+======================================
+goos: darwin
+goarch: arm64
+pkg: github.com/hiiamtin/goctxid/poc/zap-fiber
+cpu: Apple M1
+BenchmarkHealthCheck-8         	   95918	     11884 ns/op	    7914 B/op	      41 allocs/op
+BenchmarkGetUser-8             	     100	  11028097 ns/op	   10020 B/op	      54 allocs/op
+BenchmarkCreateUser-8          	      55	  21018615 ns/op	   12366 B/op	      69 allocs/op
+BenchmarkWithCorrelationID-8   	   82716	     12209 ns/op	    8016 B/op	      42 allocs/op
+BenchmarkConcurrent-8          	     847	   1384510 ns/op	    9939 B/op	      54 allocs/op
+PASS
+ok  	github.com/hiiamtin/goctxid/poc/zap-fiber	6.580s
+
+======================================
+zap-fibernative
+======================================
+goos: darwin
+goarch: arm64
+pkg: github.com/hiiamtin/goctxid/poc/zap-fibernative
+cpu: Apple M1
+BenchmarkHealthCheck-8         	   78801	     13343 ns/op	   12617 B/op	      49 allocs/op
+BenchmarkGetUser-8             	     100	  11068221 ns/op	   14641 B/op	      63 allocs/op
+BenchmarkCreateUser-8          	      56	  21006146 ns/op	   17154 B/op	      78 allocs/op
+BenchmarkWithCorrelationID-8   	   82975	     12512 ns/op	   12624 B/op	      49 allocs/op
+BenchmarkConcurrent-8          	     842	   1382832 ns/op	   14632 B/op	      63 allocs/op
+PASS
+ok  	github.com/hiiamtin/goctxid/poc/zap-fibernative	6.715s
+
+======================================
+zap-echo
+======================================
+goos: darwin
+goarch: arm64
+pkg: github.com/hiiamtin/goctxid/poc/zap-echo
+cpu: Apple M1
+BenchmarkHealthCheck-8         	  287239	      4088 ns/op	    8198 B/op	      36 allocs/op
+BenchmarkGetUser-8             	     100	  11006570 ns/op	    9911 B/op	      47 allocs/op
+BenchmarkCreateUser-8          	      56	  21033844 ns/op	   10898 B/op	      55 allocs/op
+BenchmarkWithCorrelationID-8   	  303882	      3747 ns/op	    8198 B/op	      36 allocs/op
+BenchmarkConcurrent-8          	     852	   1382112 ns/op	    9882 B/op	      47 allocs/op
+PASS
+ok  	github.com/hiiamtin/goctxid/poc/zap-echo	8.344s
+
+======================================
+slog-gin
+======================================
+goos: darwin
+goarch: arm64
+pkg: github.com/hiiamtin/goctxid/poc/slog-gin
+cpu: Apple M1
+BenchmarkHealthCheck-8         	  194078	      5262 ns/op	    8030 B/op	      42 allocs/op
+BenchmarkGetUser-8             	     100	  11145854 ns/op	    8644 B/op	      57 allocs/op
+BenchmarkCreateUser-8          	      55	  20981711 ns/op	    9685 B/op	      64 allocs/op
+BenchmarkWithCorrelationID-8   	  243754	      4620 ns/op	    8030 B/op	      42 allocs/op
+BenchmarkConcurrent-8          	     846	   1376947 ns/op	    8634 B/op	      57 allocs/op
+PASS
+ok  	github.com/hiiamtin/goctxid/poc/slog-gin	7.587s
+
+======================================
+slog-fiber
+======================================
+goos: darwin
+goarch: arm64
+pkg: github.com/hiiamtin/goctxid/poc/slog-fiber
+cpu: Apple M1
+BenchmarkHealthCheck-8         	   84778	     13742 ns/op	   12523 B/op	      54 allocs/op
+BenchmarkGetUser-8             	     100	  11092877 ns/op	   13449 B/op	      71 allocs/op
+BenchmarkCreateUser-8          	      57	  21120627 ns/op	   15950 B/op	      85 allocs/op
+BenchmarkWithCorrelationID-8   	   86733	     15271 ns/op	   12532 B/op	      54 allocs/op
+BenchmarkConcurrent-8          	     832	   1391814 ns/op	   13413 B/op	      71 allocs/op
+PASS
+ok  	github.com/hiiamtin/goctxid/poc/slog-fiber	8.073s
+
+======================================
+slog-fibernative
+======================================
+goos: darwin
+goarch: arm64
+pkg: github.com/hiiamtin/goctxid/poc/slog-fibernative
+cpu: Apple M1
+BenchmarkHealthCheck-8         	   76191	     14784 ns/op	   12509 B/op	      55 allocs/op
+BenchmarkGetUser-8             	     100	  11134982 ns/op	   13507 B/op	      73 allocs/op
+BenchmarkCreateUser-8          	      55	  21422090 ns/op	   16056 B/op	      88 allocs/op
+BenchmarkWithCorrelationID-8   	   70413	     14896 ns/op	   12513 B/op	      55 allocs/op
+BenchmarkConcurrent-8          	     836	   1378267 ns/op	   13456 B/op	      73 allocs/op
+PASS
+ok  	github.com/hiiamtin/goctxid/poc/slog-fibernative	6.536s
+
+======================================
+slog-echo
+======================================
+goos: darwin
+goarch: arm64
+pkg: github.com/hiiamtin/goctxid/poc/slog-echo
+cpu: Apple M1
+BenchmarkHealthCheck-8         	  258534	      4400 ns/op	    8088 B/op	      42 allocs/op
+BenchmarkGetUser-8             	     100	  11013835 ns/op	    8691 B/op	      57 allocs/op
+BenchmarkCreateUser-8          	      57	  21020363 ns/op	    9657 B/op	      64 allocs/op
+BenchmarkWithCorrelationID-8   	  287880	      4668 ns/op	    8088 B/op	      42 allocs/op
+BenchmarkConcurrent-8          	     846	   1368472 ns/op	    8670 B/op	      57 allocs/op
+PASS
+ok  	github.com/hiiamtin/goctxid/poc/slog-echo	8.101s
+

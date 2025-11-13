@@ -61,3 +61,6 @@ bin/
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Proof of Concepts
+poc/*
