@@ -2,7 +2,7 @@ module github.com/hiiamtin/goctxid/poc/slog-echo
 
 go 1.25
 
-replace github.com/hiiamtin/goctxid => ../..
+replace github.com/hiiamtin/goctxid => ../../..
 
 require (
 	github.com/hiiamtin/goctxid v0.0.0-00010101000000-000000000000

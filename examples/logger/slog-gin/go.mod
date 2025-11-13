@@ -2,7 +2,7 @@ module github.com/hiiamtin/goctxid/poc/slog-gin
 
 go 1.25
 
-replace github.com/hiiamtin/goctxid => ../..
+replace github.com/hiiamtin/goctxid => ../../..
 
 require (
 	github.com/gin-gonic/gin v1.11.0

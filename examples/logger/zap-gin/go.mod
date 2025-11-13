@@ -44,4 +44,4 @@ require (
 	google.golang.org/protobuf v1.36.9 // indirect
 )
 
-replace github.com/hiiamtin/goctxid => ../..
+replace github.com/hiiamtin/goctxid => ../../..

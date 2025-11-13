@@ -97,8 +97,19 @@ jobs:
     - name: Build examples
       run: |
         for dir in examples/*/; do
-          echo "Building $dir"
-          (cd "$dir" && go build -v .)
+          # Skip the logger directory as it contains subdirectories with separate modules
+          if [ "$dir" = "examples/logger/" ]; then
+            echo "Building logger examples..."
+            for logger_dir in examples/logger/*/; do
+              if [ -f "$logger_dir/main.go" ]; then
+                echo "Building $logger_dir"
+                (cd "$logger_dir" && go build -v .)
+              fi
+            done
+          else
+            echo "Building $dir"
+            (cd "$dir" && go build -v .)
+          fi
         done
 
   coverage:

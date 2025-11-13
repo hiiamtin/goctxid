@@ -2,7 +2,7 @@ module github.com/hiiamtin/goctxid/poc/slog-fibernative
 
 go 1.25
 
-replace github.com/hiiamtin/goctxid => ../..
+replace github.com/hiiamtin/goctxid => ../../..
 
 require (
 	github.com/gofiber/fiber/v2 v2.52.9
